@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>GET WEB SITE THEME COLOR</title>
+  <link rel="stylesheet" href="css/popup.css" type="text/css" />
+</head>
+
+<body>
+  <p class="title">WEB SITE THEME COLOR 🎨</p>
+  <!--tab-->
+  <ul class="tabs">
+    <li class="tab is-active">Background</li>
+    <li class="tab">Text</li>
+  </ul>
+  <div class="content">
+    <div class="panel is-show">
+      <div class="chart-container" style="position: relative; width: 260px; height:260px;">
+        <div class="loader">Loading...</div>
+        <canvas id="backgroundColorChart" width="260" height="260"></canvas>
+      </div>
+      <div id="backgroundColorList" class="color-list"></div>
+    </div>
+    <div class="panel">
+      <div class="chart-container" style="position: relative; width: 260px; height: 260px;">
+        <div class="loader">Loading...</div>
+        <canvas id="textColorChart" width="260" height="260"></canvas>
+      </div>
+      <div id="textColorList" class="color-list"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.js"></script>
+  <script src="js/popup.js"></script>
+</body>
+
+</html>
