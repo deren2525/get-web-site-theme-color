@@ -1,5 +1,11 @@
 # GET WEB SITE THEME COLOR 🎨
+<div align="center">
+  <img src="https://user-images.githubusercontent.com/32975158/124476500-d8d0b700-dddd-11eb-8837-5f4abedbc46e.png" width="80%">
+</div>
+
+<br>
 開いているウェブサイトのカラーテーマを抽出して、色の使用率やカラーコードを簡単に知ることができます  
+
 [このChrome拡張機能をインストール](https://chrome.google.com/webstore/detail/get-web-site-theme-color/dbnbaoinihpfmkcmnlabklckngadaadm)
 
 ## 特徴 🚀
