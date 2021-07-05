@@ -20,7 +20,7 @@
 - セキュリティー上の理由により、利用できないページがあります
 - 画像の色は読み取れません
   
-バグの報告や改善案ご要望など大募集です。[こちら](https://github.com/deren2525/get-web-site-theme-color/issues/new)からお願いします！
+バグの報告や改善案ご要望など大募集です。[こちら](https://github.com/deren2525/get-web-site-theme-color/issues/new/choose)からお願いします！
 
 <div align="center">
   <img src="https://user-images.githubusercontent.com/32975158/124474487-8abab400-dddb-11eb-99a1-287f174587fd.gif" width="80%">
