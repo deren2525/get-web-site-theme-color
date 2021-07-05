@@ -19,6 +19,8 @@
 - この拡張機能を追加したときや更新したときに、既に開いているウェブサイトがありましたら一度画面を更新してください
 - セキュリティー上の理由により、利用できないページがあります
 - 画像の色は読み取れません
+  
+バグの報告や改善案ご要望など大募集です。[こちら](https://github.com/deren2525/get-web-site-theme-color/issues/new)からお願いします！
 
 <div align="center">
   <img src="https://user-images.githubusercontent.com/32975158/124474487-8abab400-dddb-11eb-99a1-287f174587fd.gif" width="80%">
