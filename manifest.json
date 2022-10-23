@@ -1,8 +1,8 @@
 {
   "name": "__MSG_Name__",
-  "version": "1.1.0",
+  "version": "1.2.1",
   "description": "__MSG_Description__",
-  "browser_action": {
+  "action": {
     "default_title": "__MSG_Name__",
     "default_popup": "popup.html",
     "default_icon": {
@@ -28,7 +28,10 @@
     "48": "assets/images/icon.png",
     "128": "assets/images/icon.png"
   },
-  "content_security_policy": "script-src 'self' https://cdnjs.cloudflare.com; object-src 'self';",
-  "manifest_version": 2,
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts; script-src 'self'; object-src 'self'"
+  },
+  "manifest_version": 3,
   "default_locale": "en"
 }
