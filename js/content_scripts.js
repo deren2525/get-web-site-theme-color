@@ -39,15 +39,17 @@ const noChildrenTags = [
   'COL'
 ];
 
+const htmlElement = document.getElementsByTagName('html')[0];
+const bodyElement = document.getElementsByTagName('body')[0];
+
 let allBackgroundColors = []
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   allBackgroundColors = []
-  const htmlElement = document.getElementsByTagName('html')[0];
-  const bodyElement = document.getElementsByTagName('body')[0];
 
   // background color が設定されている、htmlタグから一番近いタグを取得
   const parentElements = getColorElement(Array.from([htmlElement]))
+
   totalElementArea(parentElements).forEach(v => allBackgroundColors.push(v));
   // 子要素取得
   checkedChildElementArea(parentElements);
@@ -150,21 +152,21 @@ function rgbToColorCode(rgb) {
  * @returns 背景色があるElementたち
  */
 function getColorElement(values) {
-  let elements = []
-
+  let elements = [];
   values.forEach(elm => {
-    // 透明で子要素なし
-    if (window.getComputedStyle(elm).backgroundColor.includes('rgba') && elm.children.length === 0 || noChildrenTags.includes(elm.tagName.toUpperCase())) {
+    if (window.getComputedStyle(elm).backgroundColor.includes('rgba') && (elm.children.length === 0 || noChildrenTags.includes(elm.tagName.toUpperCase()))) {
+      // 透明で子要素なしの場合return
       return;
-      // 透明で子要素あり
-    } else if (window.getComputedStyle(elm).backgroundColor.includes('rgba')) {
+    } else if (elm.tagName === 'HTML' || window.getComputedStyle(elm).backgroundColor.includes('rgba')) {
+      // 透明で子要素あり or elmの中身がHTMLタグだった場合
+      // elementsに子要素を登録
       for (let i = 0; i < elm.children.length; i++) {
-        if (!notApplicableTags.includes(elm.children[i].tagName.toUpperCase()) && elm.children[i].style.display !== 'none') {
+        if(!notApplicableTags.includes(elm.children[i].tagName.toUpperCase())&& elm.children[i].style.display !== 'none') {
           elements.push(elm.children[i]);
         }
       }
-      // 背景色あり
     } else if (!notApplicableTags.includes(elm.tagName.toUpperCase())) {
+      // 背景色ありの場合elementsに登録
       elements.push(elm);
     }
   });
@@ -174,6 +176,7 @@ function getColorElement(values) {
     return getColorElement(elements);
   }
 
+  // カラーデータと面積を登録
   return elements.length ?
     elements.map(element => {
       return {
@@ -199,7 +202,7 @@ function totalElementArea(elements) {
       return;
     }
 
-    const childElements = getColorElement(Array.from(elm.element.children))
+    const childElements = getColorElement(Array.from(elm.element.children));
     if (!childElements.length) return;
 
     const total = childElements.reduce((sum, element) => {
@@ -213,7 +216,7 @@ function totalElementArea(elements) {
 
 function checkedChildElementArea(elements) {
   if (!elements.length) return;
-  const checkedChildElements = []
+  const checkedChildElements = [];
 
   for (let i = 0; i < elements.length; i++) {
     const childElements = totalElementArea(Array.from(getColorElement(elements[i].children)));

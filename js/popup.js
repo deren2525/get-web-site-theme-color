@@ -4,6 +4,7 @@ const textColorList = document.getElementById("textColorList");
 const backgroundColorList = document.getElementById("backgroundColorList");
 const loadings = document.getElementsByClassName('loader');
 
+// 背景カラー比率円グラフの生成
 let backgroundColorChart = new Chart(backgroundColorCtx, {
   type: 'doughnut',
   data: {
@@ -22,6 +23,7 @@ let backgroundColorChart = new Chart(backgroundColorCtx, {
   }
 });
 
+// テキストカラー比率円グラフの生成
 let textColorChart = new Chart(textColorCtx, {
   type: 'doughnut',
   data: {
@@ -42,6 +44,7 @@ let textColorChart = new Chart(textColorCtx, {
 
 function waitPageLoad(callback) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    // 現在開いているタブのページ情報を取得
     const currentTab = tabs[0];
     if (currentTab.status === 'complete') {
       // ロードが完了していたら、コールバックを実行
