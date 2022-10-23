@@ -74,13 +74,11 @@ waitPageLoad((currentTab) => {
     for (let i = 0; i < loadings.length; i++) {
       loadings[i].style.display = 'none';
     }
-
     const matches = currentTab.url.match(/(\w+):\/\/([\w.]+)\/(\S*)/);
-    const url = matches[0];
-    const protocol = matches[1];
-    const host = matches[2];
+    if(matches && matches.length) {
+      const protocol = matches[1];
+      const host = matches[2];
 
-    if (matches) {
       if (host === 'chrome.google.com') {
         toast(chrome.i18n.getMessage('Error_access_chrome_web_store'), 'error', 0);
         return;
