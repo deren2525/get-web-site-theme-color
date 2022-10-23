@@ -1,7 +1,7 @@
-const backgroundColorCtx = document.getElementById("backgroundColorChart");
-const textColorCtx = document.getElementById("textColorChart");
-const textColorList = document.getElementById("textColorList");
-const backgroundColorList = document.getElementById("backgroundColorList");
+const backgroundColorCtx = document.getElementById('backgroundColorChart');
+const textColorCtx = document.getElementById('textColorChart');
+const textColorList = document.getElementById('textColorList');
+const backgroundColorList = document.getElementById('backgroundColorList');
 const loadings = document.getElementsByClassName('loader');
 
 // 背景カラー比率円グラフの生成
@@ -64,7 +64,7 @@ const textColors = [];
 waitPageLoad((currentTab) => {
   // tab
   const tabs = document.getElementsByClassName('tab');
-  Array.from(document.getElementsByClassName('is-show')).forEach(element => {
+  Array.from(document.getElementsByClassName('is-show')).forEach((element) => {
     element.classList.remove('is-show');
   });
   document.getElementsByClassName('panel')[0].classList.add('is-show');
@@ -89,17 +89,16 @@ waitPageLoad((currentTab) => {
         return;
       }
 
-      if (!val || !val.backgroundColors.length && !val.textColors.length) {
+      if (!val || (!val.backgroundColors.length && !val.textColors.length)) {
         toast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0);
         return;
       }
     } else {
-      if (!val || !val.backgroundColors.length && !val.textColors.length) {
+      if (!val || (!val.backgroundColors.length && !val.textColors.length)) {
         toast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0);
         return;
       }
     }
-
 
     val.backgroundColors.sort((a, b) => {
       return b.value - a.value;
@@ -111,26 +110,29 @@ waitPageLoad((currentTab) => {
 
     // background
     // label
-    backgroundColorChart.data.labels = val.backgroundColors.map(item => item.color);
+    backgroundColorChart.data.labels = val.backgroundColors.map((item) => item.color);
     // data
-    backgroundColorChart.data.datasets = [{
-      backgroundColor: val.backgroundColors.map(item => item.color),
-      data: val.backgroundColors.map(item => item.value)
-    }];
+    backgroundColorChart.data.datasets = [
+      {
+        backgroundColor: val.backgroundColors.map((item) => item.color),
+        data: val.backgroundColors.map((item) => item.value),
+      }
+    ];
     // tooltip label
-    backgroundColorChart.options.tooltips.callbacks.label = ((tooltipItem, data) => {
+    backgroundColorChart.options.tooltips.callbacks.label = (tooltipItem, data) => {
       return data.labels[tooltipItem.index];
-    });
+    };
     // color list
-    val.backgroundColors.forEach(item => {
-      backgroundColorList.insertAdjacentHTML("beforeend",
+    val.backgroundColors.forEach((item) => {
+      backgroundColorList.insertAdjacentHTML(
+        'beforeend',
         `<div class="color-item">
         <div style="background: ${item.color};" data-color="${item.color}"></div>
         <p data-color="${item.color}">${item.color}</p>
         </div>`
       );
-    })
-    Array.from(backgroundColorList.getElementsByClassName('color-item')).forEach(item => {
+    });
+    Array.from(backgroundColorList.getElementsByClassName('color-item')).forEach((item) => {
       item.addEventListener('click', (e) => {
         if (!e) return;
         // color code copy
@@ -141,26 +143,29 @@ waitPageLoad((currentTab) => {
 
     // text
     // label
-    textColorChart.data.labels = val.textColors.map(item => item.color);
+    textColorChart.data.labels = val.textColors.map((item) => item.color);
     // data
-    textColorChart.data.datasets = [{
-      backgroundColor: val.textColors.map(item => item.color),
-      data: val.textColors.map(item => item.value)
-    }];
+    textColorChart.data.datasets = [
+      {
+        backgroundColor: val.textColors.map((item) => item.color),
+        data: val.textColors.map((item) => item.value)
+      }
+    ];
     // tooltip label
-    textColorChart.options.tooltips.callbacks.label = ((tooltipItem, data) => {
+    textColorChart.options.tooltips.callbacks.label = (tooltipItem, data) => {
       return data.labels[tooltipItem.index];
-    });
+    };
     // color list
-    val.textColors.forEach(item => {
-      textColorList.insertAdjacentHTML("beforeend",
+    val.textColors.forEach((item) => {
+      textColorList.insertAdjacentHTML(
+        'beforeend',
         `<div class="color-item">
         <div style="background: ${item.color};" data-color="${item.color}"></div>
         <p data-color="${item.color}">${item.color}</p>
         </div>`
       );
-    })
-    Array.from(textColorList.getElementsByClassName('color-item')).forEach(item => {
+    });
+    Array.from(textColorList.getElementsByClassName('color-item')).forEach((item) => {
       item.addEventListener('click', (e) => {
         if (!e) return;
         // color code copy
@@ -171,9 +176,7 @@ waitPageLoad((currentTab) => {
   });
 });
 
-
-
-backgroundColorCtx.addEventListener('click', e => {
+backgroundColorCtx.addEventListener('click', (e) => {
   const elements = backgroundColorChart.getElementAtEvent(e);
   if (!elements.length) return;
 
@@ -181,7 +184,7 @@ backgroundColorCtx.addEventListener('click', e => {
   copyText(elements[0]._model.label);
 });
 
-textColorCtx.addEventListener('click', e => {
+textColorCtx.addEventListener('click', (e) => {
   const elements = textColorChart.getElementAtEvent(e);
   if (!elements.length) return;
 
@@ -201,7 +204,7 @@ Array.from(document.getElementsByClassName('tab')).forEach((tab, idx) => {
 
 // toast
 function toast(text, type, time) {
-  const toast = document.querySelector("#toast");
+  const toast = document.querySelector('#toast');
   toast.innerHTML = `<p>${text}</p>`;
   toast.style.opacity = 0;
 
