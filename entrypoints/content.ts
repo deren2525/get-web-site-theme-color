@@ -123,17 +123,17 @@ export default defineContentScript({
      * @param {string} rgb - RGB文字列 (例: 'rgb(255, 255, 255)')
      * @returns {string} HEXカラーコード(例: '#FFFFFF')
      */
-    const rgbToColorCode = (rgb: string): string => {
-      return (
-        '#' +
-        rgb
-          .match(/\d+/g)!
-          .map((v) => ('0' + parseInt(v).toString(16)).slice(-2))
-          .join('')
-          .toUpperCase()
-      )
+    const rgbToColorCode = (rgb: string): string => {    
+      const match = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+      if (!match) {
+        // rgb以外のカラーで来た場合はそのまま返す
+        return rgb
+      }
+    
+      const [r, g, b] = match.slice(1, 4).map((v) => parseInt(v).toString(16).padStart(2, '0'))
+      return `#${r}${g}${b}`.toUpperCase()
     }
-
+    
     /**
      * 透明な要素の背景色を親から辿って見た目の色を推定する
      * @param {Element[]} element - 対象のHTML要素
@@ -143,6 +143,7 @@ export default defineContentScript({
       let current: Element | null = element
       while (current) {
         const bg = window.getComputedStyle(current).backgroundColor
+        console.log(bg, 'bg')
         const isTransparent = bg === 'transparent' || (bg.includes('rgba') && bg.endsWith(', 0)'))
         if (!isTransparent && bg !== '') {
           return rgbToColorCode(bg)
@@ -163,6 +164,7 @@ export default defineContentScript({
       values.forEach((elm) => {
         const tag = elm.tagName.toUpperCase()
         const bg = window.getComputedStyle(elm).backgroundColor
+        console.log(bg, 'bg')
 
         if (bg.includes('rgba') && (elm.children.length === 0 || noChildrenTags.includes(tag))) {
           return

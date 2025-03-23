@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="flex flex-wrap items-start">
     <div
       v-for="color in colors"
       :key="color.color"
@@ -9,7 +9,7 @@
       <div
         :style="{ background: color.color }"
         :data-color="color.color"
-        class="w-[30px] h-[15px] border border-white box-border"
+        class="w-[30px] min-w-[30px] h-[15px] border border-white box-border"
       ></div>
       <p :data-color="color.color" class="pl-[5px] text-[14px] my-[5px] text-gray">
         {{ color.color }}
