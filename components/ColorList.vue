@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-[25px]">
+  <div>
     <div
       v-for="color in colors"
       :key="color.color"
@@ -28,4 +28,8 @@ defineEmits<{
 }>()
 </script>
 
-<style scoped></style>
+<style scoped>
+.text {
+  color: #f1efed;
+}
+</style>

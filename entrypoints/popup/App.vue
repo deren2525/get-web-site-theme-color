@@ -1,6 +1,6 @@
 <template>
   <div>
-    <p class="text-center m-0 font-bold pt-[20px] text-[14px] text-text">WEB SITE THEME COLOR 🎨</p>
+    <p class="text-center m-0 font-bold pt-[16px] text-[14px] text-text">WEB SITE THEME COLOR 🎨</p>
 
     <ul class="flex justify-center p-0 mt-0">
       <li class="c-tab" :class="{ active: activeTab === 0 }" @click="activeTab = 0">Background</li>
@@ -8,8 +8,8 @@
     </ul>
 
     <!-- パネル -->
-    <div class="w-full h-full px-[20px] pb-[20px] box-border">
-      <div v-if="activeTab === 0">
+    <div class="w-full h-full px-[16px] pt-[12px] pb-[16px] box-border flex flex-col gap-[16px]">
+      <template v-if="activeTab === 0">
         <div class="chart-container">
           <Loading v-if="loading" />
           <ColorChart
@@ -20,9 +20,9 @@
           />
         </div>
         <ColorList :colors="backgroundColors" @color-clicked="copyText" />
-      </div>
+      </template>
 
-      <div v-else-if="activeTab === 1">
+      <template v-else-if="activeTab === 1">
         <div class="chart-container">
           <Loading v-if="loading" />
           <ColorChart
@@ -33,7 +33,7 @@
           />
         </div>
         <ColorList :colors="textColors" @color-clicked="copyText" />
-      </div>
+      </template>
     </div>
 
     <Toast ref="toastRef" />
@@ -99,8 +99,42 @@ onMounted(() => {
 
     chrome.tabs.sendMessage(currentTab.id, {}, (val) => {
       loading.value = false
-
+      // エラーハンドリング
       if (chrome.runtime.lastError) {
+        // URLが取得できない場合 → アクセスできないので再読み込みを促す
+        if (!currentTab.url) {
+          toastRef.value?.showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
+          return
+        }
+
+        // URLを分解
+        const matches = currentTab.url.match(/(\w+):\/\/([\w.]+)\/(\S*)/)
+        const protocol = matches?.[1] ?? ''
+        const host = matches?.[2] ?? ''
+
+        // Chrome のシステムページや拡張ページなど → content script は動かない
+        const isChromePage =
+          protocol === 'chrome' ||
+          host === 'chrome.google.com' ||
+          host === 'chromewebstore.google.com'
+
+        if (isChromePage) {
+          let messageKey = 'Error_access_chrome_pages'
+          if (host === 'chromewebstore.google.com') {
+            messageKey = 'Error_access_chrome_web_store'
+          }
+          // 対象ページでは使用できない旨を表示
+          toastRef.value?.showToast(chrome.i18n.getMessage(messageKey), 'error', 0)
+          return
+        }
+
+        // 値がない、または背景色・文字色がどちらも取得できなかった場合 → 再読み込み指示
+        if (!val || (!val.backgroundColors?.length && !val.textColors?.length)) {
+          toastRef.value?.showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
+          return
+        }
+
+        // その他原因不明のエラー
         toastRef.value?.showToast(
           chrome.i18n.getMessage('Error_content_script_not_found'),
           'error',
@@ -112,33 +146,6 @@ onMounted(() => {
           chrome.i18n.getMessage('Success_content_script_responded'),
           'success'
         )
-      }
-
-      if (!currentTab.url) {
-        toastRef.value?.showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
-        return
-      }
-
-      const matches = currentTab.url.match(/(\w+):\/\/([\w.]+)\/(\S*)/)
-      const isChromePage =
-        matches && (matches[2] === 'chrome.google.com' || matches[1] === 'chrome')
-
-      if (isChromePage) {
-        toastRef.value?.showToast(
-          chrome.i18n.getMessage(
-            matches[2] === 'chrome.google.com'
-              ? 'Error_access_chrome_web_store'
-              : 'Error_access_chrome_pages'
-          ),
-          'error',
-          0
-        )
-        return
-      }
-
-      if (!val || (!val.backgroundColors?.length && !val.textColors?.length)) {
-        toastRef.value?.showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
-        return
       }
 
       // ソートして格納

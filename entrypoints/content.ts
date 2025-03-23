@@ -211,7 +211,8 @@ export default defineContentScript({
         if (
           el.element.children.length === 0 ||
           noChildrenTags.includes(el.element.tagName.toUpperCase())
-        ) return
+        )
+          return
 
         const childElements = getColorElement(Array.from(el.element.children))
         const total = childElements.reduce((sum, c) => sum + c.area, 0)
