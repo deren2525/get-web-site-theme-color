@@ -78,5 +78,4 @@ watch(
   }
 )
 </script>
-
 <style scoped></style>

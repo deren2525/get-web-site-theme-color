@@ -1,26 +1,36 @@
 <template>
   <transition name="fade">
-    <div v-if="visible" :class="['toast', type]"><p>{{ message }}</p></div>
+    <div v-if="visible" :class="['toast', type]">
+      <p>{{ message }}</p>
+    </div>
   </transition>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const visible = ref(false)
-const message = ref('')
+const visible = ref<boolean>(false)
+const message = ref<string>('')
 const type = ref<'success' | 'error'>('success')
 let timer: number | null = null
 
-function showToast(text: string, toastType: 'success' | 'error' = 'success', duration = 2000) {
+/**
+ * トースト表示
+ * @param {string} text トーストメッセージ
+ * @param {success' | 'error'} toastType タイプ
+ * @param {number} duration 表示秒数（0を指定した場合は常時表示される）
+ */
+const showToast = (text: string, toastType: 'success' | 'error' = 'success', duration = 2000) => {
   message.value = text
   type.value = toastType
   visible.value = true
 
   if (timer) clearTimeout(timer)
-  timer = window.setTimeout(() => {
-    visible.value = false
-  }, duration)
+  if (duration) {
+    timer = window.setTimeout(() => {
+      visible.value = false
+    }, duration)
+  }
 }
 
 defineExpose({ showToast })

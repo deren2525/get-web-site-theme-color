@@ -40,44 +40,59 @@
         <ColorList :colors="textColors" @color-clicked="copyText" />
       </div>
     </div>
-    <!-- 
-    <div id="toast" :class="['toast', toastType]" v-show="toastMessage">
-      <p>{{ toastMessage }}</p>
-    </div> -->
     <Toast ref="toastRef" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, type ComponentPublicInstance, type Ref } from 'vue'
 import ColorChart from '@/components/ColorChart.vue'
 import ColorList from '@/components/ColorList.vue'
 import Loading from '@/components/Loading.vue'
 import Toast from '@/components/Toast.vue'
 
-const activeTab = ref(0)
-const loading = ref(true)
-const backgroundCanvas = ref(null)
-const textCanvas = ref(null)
+// 型定義
+type ToastType = 'success' | 'error'
 
-const backgroundChart = ref(null)
-const textChart = ref(null)
+type ToastExpose = {
+  showToast: (text: string, type?: ToastType, duration?: number) => void
+}
 
-const backgroundColors = ref([])
-const textColors = ref([])
+type ChartColorData = {
+  color: string
+  value: number
+}
 
-const toastMessage = ref('')
-const toastRef = ref<InstanceType<typeof Toast>>()
+const activeTab = ref<number>(0)
+const loading = ref<boolean>(true)
 
-// 色コードをコピー
-function copyText(text: string) {
+// Canvas要素
+const backgroundCanvas = ref<HTMLCanvasElement | null>(null)
+const textCanvas = ref<HTMLCanvasElement | null>(null)
+
+// Chart.js インスタンス
+const backgroundChart = ref<any>(null)
+const textChart = ref<any>(null)
+
+// データ（背景色・文字色）
+const backgroundColors: Ref<ChartColorData[]> = ref([])
+const textColors: Ref<ChartColorData[]> = ref([])
+
+// Toast のインスタンス
+const toastRef = ref<ComponentPublicInstance<ToastExpose> | null>(null)
+
+/**
+ * カラーコードコピー＆トースト表示
+ * @param text トーストメッセージ
+ */
+function copyText(text: string): void {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(text)
     toastRef.value?.showToast(chrome.i18n.getMessage('Success_copy_color'), 'success')
   }
 }
 
-// ページロード後に初期化
+// ページロード時に実行される初期化処理
 onMounted(() => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const currentTab = tabs[0]
@@ -88,21 +103,20 @@ onMounted(() => {
 
     chrome.tabs.sendMessage(currentTab.id, {}, (val) => {
       loading.value = false
-      if (chrome.runtime.lastError) {
-        console.warn('❌ runtime.lastError:', chrome.runtime.lastError.message)
-        toastRef.value?.showToast('❌ Content script not found in this tab.', 'error', 0)
 
-        console.warn(chrome.runtime.lastError.message)
+      if (chrome.runtime.lastError) {
+        console.error('❌ runtime.lastError:', chrome.runtime.lastError.message)
+        toastRef.value?.showToast('❌ Content script not found in this tab.', 'error', 0)
         return
       } else {
-        console.log('✅ Content script responded:', val)
         toastRef.value?.showToast('✅ Success! Content script responded!', 'success')
       }
 
-      if (!currentTab?.url) {
+      if (!currentTab.url) {
         toastRef.value?.showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
         return
       }
+
       const matches = currentTab.url.match(/(\w+):\/\/([\w.]+)\/(\S*)/)
       const isChromePage =
         matches && (matches[2] === 'chrome.google.com' || matches[1] === 'chrome')
@@ -120,99 +134,46 @@ onMounted(() => {
         return
       }
 
-      if (!val || (!val.backgroundColors.length && !val.textColors.length)) {
+      if (!val || (!val.backgroundColors?.length && !val.textColors?.length)) {
         toastRef.value?.showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
         return
       }
 
-      val.backgroundColors.sort((a, b) => b.value - a.value)
-      val.textColors.sort((a, b) => b.value - a.value)
-
+      // ソートして格納
+      val.backgroundColors.sort((a: ChartColorData, b: ChartColorData) => b.value - a.value)
+      val.textColors.sort((a: ChartColorData, b: ChartColorData) => b.value - a.value)
       backgroundColors.value = val.backgroundColors
       textColors.value = val.textColors
 
-      // チャート描画
-      backgroundChart.value = new Chart(backgroundCanvas.value, {
-        type: 'doughnut',
-        data: {
-          labels: backgroundColors.value.map((c) => c.color),
-          datasets: [
-            {
-              backgroundColor: backgroundColors.value.map((c) => c.color),
-              data: backgroundColors.value.map((c) => c.value),
-            },
-          ],
-        },
-        options: {
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (tooltipItem) => backgroundColors.value[tooltipItem.dataIndex].color,
-              },
-            },
-            title: { display: true, text: 'Background Color' },
-          },
-        },
-      })
-
-      textChart.value = new Chart(textCanvas.value, {
-        type: 'doughnut',
-        data: {
-          labels: textColors.value.map((c) => c.color),
-          datasets: [
-            {
-              backgroundColor: textColors.value.map((c) => c.color),
-              data: textColors.value.map((c) => c.value),
-            },
-          ],
-        },
-        options: {
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (tooltipItem) => textColors.value[tooltipItem.dataIndex].color,
-              },
-            },
-            title: { display: true, text: 'Text Color' },
-          },
-        },
-      })
-
-      // チャートクリックでコピー
-      backgroundCanvas.value.onclick = (e) => {
-        const elements = backgroundChart.value.getElementsAtEventForMode(
+      // グラフ描画
+      backgroundCanvas.value?.addEventListener('click', (e: MouseEvent) => {
+        const elements = backgroundChart.value?.getElementsAtEventForMode(
           e,
           'nearest',
           { intersect: true },
           false
         )
-        if (elements.length) {
+        if (elements?.length) {
           const index = elements[0].index
           copyText(backgroundColors.value[index].color)
         }
-      }
+      })
 
-      textCanvas.value.onclick = (e) => {
-        const elements = textChart.value.getElementsAtEventForMode(
+      textCanvas.value?.addEventListener('click', (e: MouseEvent) => {
+        const elements = textChart.value?.getElementsAtEventForMode(
           e,
           'nearest',
           { intersect: true },
           false
         )
-        if (elements.length) {
+        if (elements?.length) {
           const index = elements[0].index
           copyText(textColors.value[index].color)
         }
-      }
+      })
     })
   })
 })
 </script>
 
-<style scoped>
-/* @import '@/assets/popup.css'; */
-</style>
+<style scoped></style>
