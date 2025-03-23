@@ -1,17 +1,19 @@
 <template>
-  <div class="color-list">
+  <div class="mt-[25px]">
     <div
-      class="color-item"
       v-for="color in colors"
       :key="color.color"
       @click="$emit('color-clicked', color.color)"
+      class="inline-flex items-center w-1/2 cursor-pointer"
     >
       <div
-        class="color-swatch"
         :style="{ background: color.color }"
         :data-color="color.color"
+        class="w-[30px] h-[15px] border border-white box-border"
       ></div>
-      <p :data-color="color.color">{{ color.color }}</p>
+      <p :data-color="color.color" class="pl-[5px] text-[14px] my-[5px] text-gray">
+        {{ color.color }}
+      </p>
     </div>
   </div>
 </template>
@@ -26,29 +28,4 @@ defineEmits<{
 }>()
 </script>
 
-<style scoped>
-.color-list {
-  margin-top: 25px;
-}
-
-.color-item {
-  display: inline-flex;
-  align-items: center;
-  width: 50%;
-  cursor: pointer;
-}
-
-.color-swatch {
-  width: 30px;
-  height: 15px;
-  border: 1px solid #fff;
-  box-sizing: border-box;
-}
-
-.color-item p {
-  padding-left: 5px;
-  font-size: 14px;
-  margin: 5px 0;
-  color: #666;
-}
-</style>
+<style scoped></style>

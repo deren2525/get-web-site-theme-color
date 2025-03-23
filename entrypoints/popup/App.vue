@@ -1,18 +1,15 @@
 <template>
   <div>
-    <p class="title">WEB SITE THEME COLOR 🎨</p>
+    <p class="text-center m-0 font-bold pt-[20px] text-[14px] text-text">WEB SITE THEME COLOR 🎨</p>
 
-    <!-- タブ -->
-    <ul class="tabs">
-      <li class="tab" :class="{ 'is-active': activeTab === 0 }" @click="activeTab = 0">
-        Background
-      </li>
-      <li class="tab" :class="{ 'is-active': activeTab === 1 }" @click="activeTab = 1">Text</li>
+    <ul class="flex justify-center p-0 mt-0">
+      <li class="c-tab" :class="{ active: activeTab === 0 }" @click="activeTab = 0">Background</li>
+      <li class="c-tab" :class="{ active: activeTab === 1 }" @click="activeTab = 1">Text</li>
     </ul>
 
     <!-- パネル -->
-    <div class="content">
-      <div v-show="activeTab === 0" class="panel is-show">
+    <div class="w-full h-full px-[20px] pb-[20px] box-border">
+      <div v-show="activeTab === 0">
         <div class="chart-container">
           <Loading v-if="loading" />
           <ColorChart
@@ -21,12 +18,11 @@
             :data="backgroundColors"
             @color-clicked="copyText"
           />
-          <div v-else>取得できませんでした</div>
         </div>
         <ColorList :colors="backgroundColors" @color-clicked="copyText" />
       </div>
 
-      <div v-show="activeTab === 1" class="panel is-show">
+      <div v-show="activeTab === 1">
         <div class="chart-container">
           <Loading v-if="loading" />
           <ColorChart
@@ -35,11 +31,11 @@
             :data="textColors"
             @color-clicked="copyText"
           />
-          <div v-else>取得できませんでした</div>
         </div>
         <ColorList :colors="textColors" @color-clicked="copyText" />
       </div>
     </div>
+
     <Toast ref="toastRef" />
   </div>
 </template>
@@ -176,4 +172,16 @@ onMounted(() => {
 })
 </script>
 
-<style scoped></style>
+<style scoped>
+.c-tab {
+  @apply text-tab-inactive cursor-pointer flex-1 font-bold order-[-1] px-[24px] py-[12px] relative text-center whitespace-nowrap list-none select-none transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)];
+}
+.c-tab.active {
+  @apply text-primary;
+}
+
+.c-tab.active::after {
+  content: '';
+  @apply block absolute bottom-0 left-0 w-full h-[3px] bg-primary z-[1] pointer-events-none transition-all duration-200 ease-out;
+}
+</style>

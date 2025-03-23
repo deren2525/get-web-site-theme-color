@@ -3,6 +3,7 @@ import { defineConfig } from 'wxt'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
+  manifestVersion: 3,
   vite() {
     return {
       plugins: [vue()],
@@ -12,7 +13,6 @@ export default defineConfig({
     name: '__MSG_Name__',
     description: '__MSG_Description__',
     version: '2.0.0',
-    manifest_version: 3,
     default_locale: 'en',
     action: {
       default_title: '__MSG_Name__',

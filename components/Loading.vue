@@ -1,53 +1,49 @@
 <template>
-  <div class="loader" />
+  <div class="c-loader-container">
+    <div class="c-loader"></div>
+  </div>
 </template>
 
 <script setup lang="ts"></script>
 
 <style scoped>
-.loader,
-.loader:after {
+.c-loader-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 40px 0;
+}
+/* https://cssloaders.github.io/ */
+.c-loader {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #fff;
   border-radius: 50%;
-  width: 10em;
-  height: 10em;
-}
-
-.loader {
-  position: absolute;
-  left: calc(50% - 5em);
-  -webkit-box-sizing: border-box;
+  display: inline-block;
+  position: relative;
   box-sizing: border-box;
-  margin: 60px auto;
-  font-size: 10px;
-  text-indent: -9999em;
-  border-top: 1.1em solid rgba(22, 164, 167, 0.2);
-  border-right: 1.1em solid rgba(22, 164, 167, 0.2);
-  border-bottom: 1.1em solid rgba(22, 164, 167, 0.2);
-  border-left: 1.1em solid #16a4a7;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-animation: load8 1.1s infinite linear;
-  animation: load8 1.1s infinite linear;
+  animation: rotation 1s linear infinite;
+}
+.c-loader::after {
+  content: '';
+  box-sizing: border-box;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-bottom-color: #1fa0a2;
 }
 
-@-webkit-keyframes load8 {
+@keyframes rotation {
   0% {
-    -webkit-transform: rotate(0deg);
     transform: rotate(0deg);
   }
   100% {
-    -webkit-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes load8 {
-  0% {
-    -webkit-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -webkit-transform: rotate(360deg);
     transform: rotate(360deg);
   }
 }
