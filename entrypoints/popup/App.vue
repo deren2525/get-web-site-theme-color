@@ -4,7 +4,9 @@
 
     <!-- タブ -->
     <ul class="tabs">
-      <li class="tab" :class="{ 'is-active': activeTab === 0 }" @click="activeTab = 0">Background</li>
+      <li class="tab" :class="{ 'is-active': activeTab === 0 }" @click="activeTab = 0">
+        Background
+      </li>
       <li class="tab" :class="{ 'is-active': activeTab === 1 }" @click="activeTab = 1">Text</li>
     </ul>
 
@@ -12,50 +14,46 @@
     <div class="content">
       <div v-show="activeTab === 0" class="panel is-show">
         <div class="chart-container">
-          <div class="loader" v-if="loading"></div>
-          <canvas ref="backgroundCanvas" width="260" height="260"></canvas>
+          <Loading v-if="loading" />
+          <ColorChart
+            v-else-if="!loading && backgroundColors.length"
+            title="background Colors"
+            :data="backgroundColors"
+            @color-clicked="copyText"
+          />
+          <div v-else>取得できませんでした</div>
         </div>
-        <div class="color-list">
-          <div
-            class="color-item"
-            v-for="color in backgroundColors"
-            :key="color.color"
-            @click="copyText(color.color)"
-          >
-            <div :style="{ background: color.color }" :data-color="color.color"></div>
-            <p :data-color="color.color">{{ color.color }}</p>
-          </div>
-        </div>
+        <ColorList :colors="backgroundColors" @color-clicked="copyText" />
       </div>
 
       <div v-show="activeTab === 1" class="panel is-show">
         <div class="chart-container">
-          <div class="loader" v-if="loading"></div>
-          <canvas ref="textCanvas" width="260" height="260"></canvas>
+          <Loading v-if="loading" />
+          <ColorChart
+            v-else-if="!loading && textColors.length"
+            title="text Colors"
+            :data="textColors"
+            @color-clicked="copyText"
+          />
+          <div v-else>取得できませんでした</div>
         </div>
-        <div class="color-list">
-          <div
-            class="color-item"
-            v-for="color in textColors"
-            :key="color.color"
-            @click="copyText(color.color)"
-          >
-            <div :style="{ background: color.color }" :data-color="color.color"></div>
-            <p :data-color="color.color">{{ color.color }}</p>
-          </div>
-        </div>
+        <ColorList :colors="textColors" @color-clicked="copyText" />
       </div>
     </div>
-
+    <!-- 
     <div id="toast" :class="['toast', toastType]" v-show="toastMessage">
       <p>{{ toastMessage }}</p>
-    </div>
+    </div> -->
+    <Toast ref="toastRef" />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import Chart from 'chart.js/auto'
+import ColorChart from '@/components/ColorChart.vue'
+import ColorList from '@/components/ColorList.vue'
+import Loading from '@/components/Loading.vue'
+import Toast from '@/components/Toast.vue'
 
 const activeTab = ref(0)
 const loading = ref(true)
@@ -69,25 +67,13 @@ const backgroundColors = ref([])
 const textColors = ref([])
 
 const toastMessage = ref('')
-const toastType = ref('')
-
-// トースト表示
-function showToast(message, type = 'success', time = 2000) {
-  toastMessage.value = message
-  toastType.value = type
-
-  if (time) {
-    setTimeout(() => {
-      toastMessage.value = ''
-    }, time)
-  }
-}
+const toastRef = ref<InstanceType<typeof Toast>>()
 
 // 色コードをコピー
-function copyText(text) {
+function copyText(text: string) {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(text)
-    showToast(chrome.i18n.getMessage('Success_copy_color'), 'success', 2000)
+    toastRef.value?.showToast(chrome.i18n.getMessage('Success_copy_color'), 'success')
   }
 }
 
@@ -104,23 +90,25 @@ onMounted(() => {
       loading.value = false
       if (chrome.runtime.lastError) {
         console.warn('❌ runtime.lastError:', chrome.runtime.lastError.message)
-        showToast('❌Content script not found in this tab.', 'error', 0)
+        toastRef.value?.showToast('❌ Content script not found in this tab.', 'error', 0)
+
         console.warn(chrome.runtime.lastError.message)
         return
       } else {
         console.log('✅ Content script responded:', val)
-        showToast('✅Success! Content script responded!', 'success')
+        toastRef.value?.showToast('✅ Success! Content script responded!', 'success')
       }
 
       if (!currentTab?.url) {
-        showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
+        toastRef.value?.showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
         return
       }
       const matches = currentTab.url.match(/(\w+):\/\/([\w.]+)\/(\S*)/)
-      const isChromePage = matches && (matches[2] === 'chrome.google.com' || matches[1] === 'chrome')
+      const isChromePage =
+        matches && (matches[2] === 'chrome.google.com' || matches[1] === 'chrome')
 
       if (isChromePage) {
-        showToast(
+        toastRef.value?.showToast(
           chrome.i18n.getMessage(
             matches[2] === 'chrome.google.com'
               ? 'Error_access_chrome_web_store'
@@ -133,7 +121,7 @@ onMounted(() => {
       }
 
       if (!val || (!val.backgroundColors.length && !val.textColors.length)) {
-        showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
+        toastRef.value?.showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
         return
       }
 
@@ -147,11 +135,11 @@ onMounted(() => {
       backgroundChart.value = new Chart(backgroundCanvas.value, {
         type: 'doughnut',
         data: {
-          labels: backgroundColors.value.map(c => c.color),
+          labels: backgroundColors.value.map((c) => c.color),
           datasets: [
             {
-              backgroundColor: backgroundColors.value.map(c => c.color),
-              data: backgroundColors.value.map(c => c.value),
+              backgroundColor: backgroundColors.value.map((c) => c.color),
+              data: backgroundColors.value.map((c) => c.value),
             },
           ],
         },
@@ -172,11 +160,11 @@ onMounted(() => {
       textChart.value = new Chart(textCanvas.value, {
         type: 'doughnut',
         data: {
-          labels: textColors.value.map(c => c.color),
+          labels: textColors.value.map((c) => c.color),
           datasets: [
             {
-              backgroundColor: textColors.value.map(c => c.color),
-              data: textColors.value.map(c => c.value),
+              backgroundColor: textColors.value.map((c) => c.color),
+              data: textColors.value.map((c) => c.value),
             },
           ],
         },
@@ -196,7 +184,12 @@ onMounted(() => {
 
       // チャートクリックでコピー
       backgroundCanvas.value.onclick = (e) => {
-        const elements = backgroundChart.value.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)
+        const elements = backgroundChart.value.getElementsAtEventForMode(
+          e,
+          'nearest',
+          { intersect: true },
+          false
+        )
         if (elements.length) {
           const index = elements[0].index
           copyText(backgroundColors.value[index].color)
@@ -204,7 +197,12 @@ onMounted(() => {
       }
 
       textCanvas.value.onclick = (e) => {
-        const elements = textChart.value.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)
+        const elements = textChart.value.getElementsAtEventForMode(
+          e,
+          'nearest',
+          { intersect: true },
+          false
+        )
         if (elements.length) {
           const index = elements[0].index
           copyText(textColors.value[index].color)
