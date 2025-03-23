@@ -1,6 +1,7 @@
 export default defineContentScript({
   matches: ['<all_urls>'],
   main() {
+    // 計算を無視するタグ一覧
     const notApplicableTags = [
       'HTML',
       'HEAD',
@@ -30,13 +31,18 @@ export default defineContentScript({
       'BR',
       'WBR',
     ]
-
+    // 子要素を持たない特殊タグ
     const noChildrenTags = ['INPUT', 'TEXTAREA', 'OPTION', 'KEYGEN', 'HR', 'BDI', 'BDO', 'COL']
 
     const htmlElement = document.documentElement
     const bodyElement = document.body
 
-    let allBackgroundColors: any[] = []
+    let allBackgroundColors: {
+      element: Element | null
+      color: string
+      area: number
+      children: Element[]
+    }[] = []
 
     chrome.runtime.onMessage.addListener((_request, _sender, sendResponse) => {
       allBackgroundColors = []
@@ -60,12 +66,12 @@ export default defineContentScript({
           element: htmlElement,
           color: rgbToColorCode(htmlBg),
           area: Math.max(window.innerWidth * window.innerHeight - otherArea, 0),
-          children: htmlElement.children,
+          children: Array.from(htmlElement.children),
         })
       } else if (!bodyArea && window.innerWidth * window.innerHeight - otherArea > 0) {
         allBackgroundColors.push({
           element: null,
-          colorCode: '#FFFFFF',
+          color: '#FFFFFF',
           area: Math.max(window.innerWidth * window.innerHeight - otherArea, 0),
           children: [],
         })
@@ -82,6 +88,7 @@ export default defineContentScript({
         if (color && !color.includes('rgba')) {
           let textLength = 0
           const tag = element.tagName.toUpperCase()
+
           if (tag === 'INPUT') {
             textLength = (element as HTMLInputElement).value.length
           } else if (tag === 'BUTTON') {
@@ -111,23 +118,34 @@ export default defineContentScript({
       return true
     })
 
-    function rgbToColorCode(rgb: string): string {
+    /**
+     * RGBカラーコード文字列を #HEX形式に変換する
+     * @param {string} rgb - RGB文字列 (例: 'rgb(255, 255, 255)')
+     * @returns {string} HEXカラーコード(例: '#FFFFFF')
+     */
+    const rgbToColorCode = (rgb: string): string => {
       return (
         '#' +
         rgb
           .match(/\d+/g)!
-          .map((a) => ('0' + parseInt(a).toString(16)).slice(-2))
+          .map((v) => ('0' + parseInt(v).toString(16)).slice(-2))
           .join('')
           .toUpperCase()
       )
     }
 
-    function getColorElement(values: Element[]): any[] {
+    /**
+     * 要素リストから、背景色が適用されている要素を再帰的に取得する
+     * @param {Element[]} values - 対象のHTML要素リスト
+     * @returns {Array<{ element: Element, color: string, area: number, children: Element[] }>}
+     */
+    const getColorElement = (values: Element[]) => {
       const elements: Element[] = []
 
       values.forEach((elm) => {
         const bg = window.getComputedStyle(elm).backgroundColor
         const tag = elm.tagName.toUpperCase()
+
         if (bg.includes('rgba') && (elm.children.length === 0 || noChildrenTags.includes(tag))) {
           return
         } else if (tag === 'HTML' || bg.includes('rgba')) {
@@ -158,15 +176,26 @@ export default defineContentScript({
       }))
     }
 
-    function totalElementArea(elements: any[]): any[] {
-      if (!elements.length) return []
-
+    /**
+     * 各要素から子要素の面積を差し引いて、純粋な面積を算出する
+     * @param {Array<{ element: Element, color: string, area: number, children: Element[] }>} elements
+     * @returns 同じ配列を area 調整済みで返す
+     */
+    const totalElementArea = (
+      elements: {
+        element: Element
+        color: string
+        area: number
+        children: Element[]
+      }[]
+    ) => {
       elements.forEach((el) => {
         if (
           el.element.children.length === 0 ||
           noChildrenTags.includes(el.element.tagName.toUpperCase())
-        )
+        ) {
           return
+        }
         const childElements = getColorElement(Array.from(el.element.children))
         const total = childElements.reduce((sum, c) => sum + c.area, 0)
         el.area = Math.max(el.area - total, 0)
@@ -175,9 +204,20 @@ export default defineContentScript({
       return elements
     }
 
-    function checkedChildElementArea(elements: any[]) {
-      if (!elements.length) return
-      const checked: any[] = []
+    /**
+     * 子要素の背景色面積を再帰的に収集し、全体色リストに加える
+     * @param {Array<{ element: Element, color: string, area: number, children: Element[] }>} elements
+     * @returns {Array} allBackgroundColors を返す（副作用あり）
+     */
+    const checkedChildElementArea = (
+      elements: {
+        element: Element
+        color: string
+        area: number
+        children: Element[]
+      }[]
+    ) => {
+      const checked: typeof elements = []
 
       elements.forEach((el) => {
         const children = totalElementArea(getColorElement(el.children))
@@ -191,9 +231,14 @@ export default defineContentScript({
       return allBackgroundColors
     }
 
-    function countColors(
-      data: { color: string | undefined; value: number }[]
-    ): { color: string; value: number }[] {
+    /**
+     * 色コードごとに値（面積や文字数）を集計して統合する
+     * @param {{ color: string, value: number }[]} data - 色と重みの配列
+     * @returns {{ color: string, value: number }[]} 集計後の色データ
+     */
+    const countColors = (
+      data: { color: string; value: number }[]
+    ): { color: string; value: number }[] => {
       const count: Record<string, number> = {}
 
       data.forEach(({ color, value }) => {
