@@ -5,7 +5,7 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   vite() {
     return {
-      plugins: [vue()], 
+      plugins: [vue()],
     }
   },
   manifest: {
@@ -18,14 +18,14 @@ export default defineConfig({
       default_title: '__MSG_Name__',
       default_popup: 'popup.html',
       default_icon: {
-        '19': "icon/icon.png",
+        '19': 'icon/icon.png',
       },
     },
     permissions: ['activeTab', 'tabs'],
     icons: {
-      "16": "icon/icon.png",
-      "48": "icon/icon.png",
-      "128": "icon/icon.png"
+      '16': 'icon/icon.png',
+      '48': 'icon/icon.png',
+      '128': 'icon/icon.png',
     },
     content_security_policy: {
       extension_pages: "script-src 'self'; object-src 'self'",

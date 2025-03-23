@@ -12,6 +12,7 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "vue-tsc --noEmit",
+    "format": "prettier --write .",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "@types/chrome": "^0.0.280",
     "@vitejs/plugin-vue": "^5.2.3",
     "@wxt-dev/module-vue": "^1.0.1",
+    "prettier": "^3.5.3",
     "typescript": "5.6.3",
     "vue-tsc": "^2.1.10",
     "wxt": "^0.19.29"
