@@ -1,0 +1,7 @@
+body {
+  @apply w-[300px] bg-background p-0 m-0 box-border;
+}
+
+p {
+  @apply text-gray text-[14px];
+}
