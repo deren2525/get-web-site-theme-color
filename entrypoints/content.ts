@@ -135,6 +135,24 @@ export default defineContentScript({
     }
 
     /**
+     * 透明な要素の背景色を親から辿って見た目の色を推定する
+     * @param {Element[]} element - 対象のHTML要素
+     * @returns {string} カラーコード
+     */
+    const resolveEffectiveBackgroundColor = (element: Element): string => {
+      let current: Element | null = element
+      while (current) {
+        const bg = window.getComputedStyle(current).backgroundColor
+        const isTransparent = bg === 'transparent' || (bg.includes('rgba') && bg.endsWith(', 0)'))
+        if (!isTransparent && bg !== '') {
+          return rgbToColorCode(bg)
+        }
+        current = current.parentElement
+      }
+      return '#FFFFFF'
+    }
+
+    /**
      * 要素リストから、背景色が適用されている要素を再帰的に取得する
      * @param {Element[]} values - 対象のHTML要素リスト
      * @returns {Array<{ element: Element, color: string, area: number, children: Element[] }>}
@@ -143,8 +161,8 @@ export default defineContentScript({
       const elements: Element[] = []
 
       values.forEach((elm) => {
-        const bg = window.getComputedStyle(elm).backgroundColor
         const tag = elm.tagName.toUpperCase()
+        const bg = window.getComputedStyle(elm).backgroundColor
 
         if (bg.includes('rgba') && (elm.children.length === 0 || noChildrenTags.includes(tag))) {
           return
@@ -168,7 +186,7 @@ export default defineContentScript({
 
       return elements.map((element) => ({
         element,
-        color: rgbToColorCode(window.getComputedStyle(element).backgroundColor),
+        color: resolveEffectiveBackgroundColor(element),
         area: element.clientWidth * element.clientHeight,
         children: Array.from(element.children).filter(
           (el) => !notApplicableTags.includes(el.tagName.toUpperCase())
@@ -193,9 +211,8 @@ export default defineContentScript({
         if (
           el.element.children.length === 0 ||
           noChildrenTags.includes(el.element.tagName.toUpperCase())
-        ) {
-          return
-        }
+        ) return
+
         const childElements = getColorElement(Array.from(el.element.children))
         const total = childElements.reduce((sum, c) => sum + c.area, 0)
         el.area = Math.max(el.area - total, 0)
@@ -242,9 +259,7 @@ export default defineContentScript({
       const count: Record<string, number> = {}
 
       data.forEach(({ color, value }) => {
-        if (color) {
-          count[color] = (count[color] || 0) + value
-        }
+        if (color) count[color] = (count[color] || 0) + value
       })
 
       return Object.entries(count).map(([color, value]) => ({ color, value }))

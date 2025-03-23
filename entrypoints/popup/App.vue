@@ -14,7 +14,7 @@
           <Loading v-if="loading" />
           <ColorChart
             v-else-if="!loading && backgroundColors.length"
-            title="background Colors"
+            title="Background Colors"
             :data="backgroundColors"
             @color-clicked="copyText"
           />
@@ -27,7 +27,7 @@
           <Loading v-if="loading" />
           <ColorChart
             v-else-if="!loading && textColors.length"
-            title="text Colors"
+            title="Text Colors"
             :data="textColors"
             @color-clicked="copyText"
           />
@@ -101,10 +101,17 @@ onMounted(() => {
       loading.value = false
 
       if (chrome.runtime.lastError) {
-        toastRef.value?.showToast(chrome.i18n.getMessage('Error_content_script_not_found'), 'error', 0)
+        toastRef.value?.showToast(
+          chrome.i18n.getMessage('Error_content_script_not_found'),
+          'error',
+          0
+        )
         return
       } else {
-        toastRef.value?.showToast(chrome.i18n.getMessage('Success_content_script_responded'), 'success')
+        toastRef.value?.showToast(
+          chrome.i18n.getMessage('Success_content_script_responded'),
+          'success'
+        )
       }
 
       if (!currentTab.url) {
