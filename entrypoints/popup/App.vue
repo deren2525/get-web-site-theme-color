@@ -9,7 +9,7 @@
 
     <!-- パネル -->
     <div class="w-full h-full px-[20px] pb-[20px] box-border">
-      <div v-show="activeTab === 0">
+      <div v-if="activeTab === 0">
         <div class="chart-container">
           <Loading v-if="loading" />
           <ColorChart
@@ -22,7 +22,7 @@
         <ColorList :colors="backgroundColors" @color-clicked="copyText" />
       </div>
 
-      <div v-show="activeTab === 1">
+      <div v-else-if="activeTab === 1">
         <div class="chart-container">
           <Loading v-if="loading" />
           <ColorChart
@@ -101,11 +101,10 @@ onMounted(() => {
       loading.value = false
 
       if (chrome.runtime.lastError) {
-        console.error('❌ runtime.lastError:', chrome.runtime.lastError.message)
-        toastRef.value?.showToast('❌ Content script not found in this tab.', 'error', 0)
+        toastRef.value?.showToast(chrome.i18n.getMessage('Error_content_script_not_found'), 'error', 0)
         return
       } else {
-        toastRef.value?.showToast('✅ Success! Content script responded!', 'success')
+        toastRef.value?.showToast(chrome.i18n.getMessage('Success_content_script_responded'), 'success')
       }
 
       if (!currentTab.url) {

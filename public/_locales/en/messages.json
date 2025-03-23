@@ -3,18 +3,24 @@
     "message": "GET WEB SITE THEME COLOR"
   },
   "Description": {
-    "message": "It is intended to help you extract the color palette of any website. You can also check the usage rate of the extracted colors."
+    "message": "Extract the theme colors from the current website and easily check their usage ratio and color codes."
   },
   "Success_copy_color": {
-    "message": "I copied the color code!"
+    "message": "Color code copied!"
   },
   "Error_access_chrome_pages": {
-    "message": "Extensions cannot run in local chrome pages for security reasons"
+    "message": "For security reasons, this extension cannot be used on pages that start with \"chrome://\"."
   },
   "Error_access_chrome_web_store": {
-    "message": "Extensions cannot run in the chrome web store for security reasons"
+    "message": "For security reasons, this extension cannot be used on the Chrome Web Store."
   },
   "Error_access_reload": {
-    "message": "Please refresh the screen of the website page that was open when you added or updated this extension"
+    "message": "Please reload any website pages that were open when the extension was added or updated."
+  },
+  "Error_content_script_not_found": {
+    "message": "This page doesn't support theme color loading."
+  },
+  "Success_content_script_responded": {
+    "message": "Theme colors loaded successfully!"
   }
 }

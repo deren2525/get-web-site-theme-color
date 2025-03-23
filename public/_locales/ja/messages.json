@@ -3,18 +3,24 @@
     "message": "GET WEB SITE THEME COLOR"
   },
   "Description": {
-    "message": "開いているウェブサイトのカラーテーマを抽出して、色の使用率やカラーコードを簡単に知ることができます。"
+    "message": "現在表示中のウェブサイトからテーマカラーを抽出し、色の使用率やカラーコードを簡単に確認できます。"
   },
   "Success_copy_color": {
     "message": "カラーコードをコピーしました！"
   },
   "Error_access_chrome_pages": {
-    "message": "セキュリティ上の理由により、「chrome://」プロトコルのページでは利用できません"
+    "message": "セキュリティ上の理由により、「chrome://」で始まるページではご利用いただけません。"
   },
   "Error_access_chrome_web_store": {
-    "message": "セキュリティ上の理由により、Chrome ウェブストアページでは利用できません"
+    "message": "セキュリティ上の理由により、Chrome ウェブストアではご利用いただけません。"
   },
   "Error_access_reload": {
-    "message": "この拡張機能を追加、更新時に開いていたウェブサイトページは、一度画面を更新してください"
+    "message": "この拡張機能を追加または更新した後に開いていたウェブサイトは、一度ページを再読み込みしてください。"
+  },
+  "Error_content_script_not_found": {
+    "message": "このページではカラーを読み込めません。"
+  },
+  "Success_content_script_responded": {
+    "message": "カラーの読み込みが完了しました！"
   }
 }
