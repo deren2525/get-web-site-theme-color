@@ -123,15 +123,22 @@ export default defineContentScript({
      * @param {string} rgb - RGB文字列 (例: 'rgb(255, 255, 255)')
      * @returns {string} HEXカラーコード(例: '#FFFFFF')
      */
-    const rgbToColorCode = (rgb: string): string => {    
+    const rgbToColorCode = (rgb: string): string => {
       const match = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/)
       if (!match) {
         // rgb以外のカラーで来た場合はそのまま返す
         return rgb
       }
-    
+
       const [r, g, b] = match.slice(1, 4).map((v) => parseInt(v).toString(16).padStart(2, '0'))
       return `#${r}${g}${b}`.toUpperCase()
+    }
+
+    const isTransparentColor = (color: string): boolean => {
+      if (color === 'transparent') return true
+      const match = color.match(/^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(\d*\.?\d+)\s*\)$/i)
+      if (!match) return false
+      return parseFloat(match[1]) === 0
     }
     
     /**
@@ -144,8 +151,7 @@ export default defineContentScript({
       while (current) {
         const bg = window.getComputedStyle(current).backgroundColor
         console.log(bg, 'bg')
-        const isTransparent = bg === 'transparent' || (bg.includes('rgba') && bg.endsWith(', 0)'))
-        if (!isTransparent && bg !== '') {
+        if (!isTransparentColor(bg) && bg !== '') {
           return rgbToColorCode(bg)
         }
         current = current.parentElement
@@ -165,10 +171,11 @@ export default defineContentScript({
         const tag = elm.tagName.toUpperCase()
         const bg = window.getComputedStyle(elm).backgroundColor
         console.log(bg, 'bg')
+        const transparentBg = isTransparentColor(bg)
 
-        if (bg.includes('rgba') && (elm.children.length === 0 || noChildrenTags.includes(tag))) {
+        if (transparentBg && (elm.children.length === 0 || noChildrenTags.includes(tag))) {
           return
-        } else if (tag === 'HTML' || bg.includes('rgba')) {
+        } else if (tag === 'HTML' || transparentBg) {
           Array.from(elm.children).forEach((child) => {
             if (
               !notApplicableTags.includes(child.tagName.toUpperCase()) &&
@@ -182,7 +189,11 @@ export default defineContentScript({
         }
       })
 
-      if (elements.some((el) => window.getComputedStyle(el).backgroundColor.includes('rgba'))) {
+      if (
+        elements.some((el) =>
+          isTransparentColor(window.getComputedStyle(el).backgroundColor)
+        )
+      ) {
         return getColorElement(elements)
       }
 
