@@ -1,4 +1,3 @@
-// wxt.config.ts
 import { defineConfig } from 'wxt'
 import vue from '@vitejs/plugin-vue'
 
@@ -12,7 +11,7 @@ export default defineConfig({
   manifest: {
     name: '__MSG_Name__',
     description: '__MSG_Description__',
-    version: '2.0.0',
+    version: '2.0.1',
     default_locale: 'en',
     action: {
       default_title: '__MSG_Name__',
