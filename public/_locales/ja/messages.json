@@ -9,16 +9,19 @@
     "message": "カラーコードをコピーしました！"
   },
   "Error_access_chrome_pages": {
-    "message": "セキュリティ上の理由により、「chrome://」で始まるページではご利用いただけません。"
+    "message": "Chrome のシステムページ（chrome://〜）では拡張機能が実行できません。通常のウェブサイトを開いてからもう一度お試しください。"
   },
   "Error_access_chrome_web_store": {
-    "message": "セキュリティ上の理由により、Chrome ウェブストアではご利用いただけません。"
+    "message": "Chrome ウェブストアでは拡張機能を実行できません。解析したいサイトを別タブで開いてから再度お試しください。"
   },
   "Error_access_reload": {
-    "message": "この拡張機能を追加または更新した後に開いていたウェブサイトは、一度ページを再読み込みしてください。"
+    "message": "このタブを再読み込みする（または新しいタブでページを開き直す）と拡張機能が読み込まれます。再読み込み後にポップアップを開き直してください。"
   },
   "Error_content_script_not_found": {
-    "message": "このページではカラーを読み込めません。"
+    "message": "ページに接続できませんでした。再読み込みするか、このサイトで拡張機能が許可されているか確認してください(ファイルURL/シークレットモードは手動許可が必要です)。"
+  },
+  "Error_access_file_pages": {
+    "message": "ローカルファイルを解析するには、chrome://extensions で「ファイルの URL へのアクセスを許可」をオンにし、ファイルを再読み込みしてください。"
   },
   "Success_content_script_responded": {
     "message": "カラーの読み込みが完了しました！"

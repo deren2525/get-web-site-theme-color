@@ -9,16 +9,19 @@
     "message": "Color code copied!"
   },
   "Error_access_chrome_pages": {
-    "message": "For security reasons, this extension cannot be used on pages that start with \"chrome://\"."
+    "message": "Chrome system pages (chrome://) block extensions. Switch to a standard website tab and reopen the popup."
   },
   "Error_access_chrome_web_store": {
-    "message": "For security reasons, this extension cannot be used on the Chrome Web Store."
+    "message": "The Chrome Web Store blocks extensions. Open the site you want to analyze in another tab and try again."
   },
   "Error_access_reload": {
-    "message": "Please reload any website pages that were open when the extension was added or updated."
+    "message": "Reload this tab (or open the page in a new tab) so the extension can load, then reopen the popup."
   },
   "Error_content_script_not_found": {
-    "message": "This page doesn't support theme color loading."
+    "message": "Couldn't reach the page. Reload it, or confirm the extension is allowed on this site (file URLs/incognito require manual permission)."
+  },
+  "Error_access_file_pages": {
+    "message": "To analyze local files, enable \"Allow access to file URLs\" for this extension on chrome://extensions and reload the file."
   },
   "Success_content_script_responded": {
     "message": "Theme colors loaded successfully!"

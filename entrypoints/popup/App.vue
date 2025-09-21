@@ -107,16 +107,36 @@ onMounted(() => {
           return
         }
 
-        // URLを分解
-        const matches = currentTab.url.match(/(\w+):\/\/([\w.]+)\/(\S*)/)
-        const protocol = matches?.[1] ?? ''
-        const host = matches?.[2] ?? ''
+        const urlString = currentTab.url ?? ''
+        let protocol = ''
+        let host = ''
+
+        if (urlString) {
+          try {
+            const parsedUrl = new URL(urlString)
+            protocol = parsedUrl.protocol.replace(':', '')
+            host = parsedUrl.host
+          } catch (_error) {
+            if (urlString.startsWith('file://')) {
+              protocol = 'file'
+            }
+          }
+        }
 
         // Chrome のシステムページや拡張ページなど → content script は動かない
         const isChromePage =
           protocol === 'chrome' ||
           host === 'chrome.google.com' ||
           host === 'chromewebstore.google.com'
+
+        if (protocol === 'file') {
+          toastRef.value?.showToast(
+            chrome.i18n.getMessage('Error_access_file_pages'),
+            'error',
+            0
+          )
+          return
+        }
 
         if (isChromePage) {
           let messageKey = 'Error_access_chrome_pages'
