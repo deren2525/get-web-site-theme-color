@@ -186,6 +186,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@reference '../../assets/tailwind.css';
+
 .c-tab {
   @apply text-tab-inactive cursor-pointer flex-1 font-bold order-[-1] px-[24px] py-[12px] relative text-center whitespace-nowrap list-none select-none transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)];
 }
