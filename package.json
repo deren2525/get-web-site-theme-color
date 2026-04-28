@@ -30,5 +30,10 @@
     "typescript": "6.0.3",
     "vue-tsc": "^3.2.7",
     "wxt": "^0.20.25"
+  },
+  "pnpm": {
+    "overrides": {
+      "uuid": "14.0.0"
+    }
   }
 }
