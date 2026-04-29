@@ -56,36 +56,38 @@ export default defineContentScript({
       const htmlBg = window.getComputedStyle(htmlElement).backgroundColor
       const bodyBg = window.getComputedStyle(bodyElement).backgroundColor
 
-      const htmlArea =
-        htmlBg && !htmlBg.includes('rgba') ? htmlElement.clientWidth * htmlElement.clientHeight : 0
-      const bodyArea =
-        bodyBg && !bodyBg.includes('rgba') ? bodyElement.clientWidth * bodyElement.clientHeight : 0
+      const htmlArea = isOpaqueBackgroundColor(htmlBg)
+        ? htmlElement.clientWidth * htmlElement.clientHeight
+        : 0
+      const bodyArea = isOpaqueBackgroundColor(bodyBg)
+        ? bodyElement.clientWidth * bodyElement.clientHeight
+        : 0
 
       if (htmlArea) {
         allBackgroundColors.push({
           element: htmlElement,
-          color: rgbToColorCode(htmlBg),
+          color: htmlBg,
           area: Math.max(window.innerWidth * window.innerHeight - otherArea, 0),
           children: Array.from(htmlElement.children),
         })
       } else if (!bodyArea && window.innerWidth * window.innerHeight - otherArea > 0) {
         allBackgroundColors.push({
           element: null,
-          color: '#FFFFFF',
+          color: 'rgb(255, 255, 255)',
           area: Math.max(window.innerWidth * window.innerHeight - otherArea, 0),
           children: [],
         })
       }
 
       const elements = Array.from(document.getElementsByTagName('*')).filter(
-        (el) => !notApplicableTags.includes(el.tagName.toUpperCase())
+        (el) => !notApplicableTags.includes(el.tagName.toUpperCase()) && isVisibleElement(el)
       )
 
       const allTextColors: { colorCode: string; area: number }[] = []
 
       elements.forEach((element) => {
         const color = window.getComputedStyle(element).color
-        if (color && !color.includes('rgba')) {
+        if (isVisibleColor(color)) {
           let textLength = 0
           const tag = element.tagName.toUpperCase()
 
@@ -100,7 +102,7 @@ export default defineContentScript({
 
           if (textLength) {
             allTextColors.push({
-              colorCode: rgbToColorCode(color),
+              colorCode: color,
               area: textLength,
             })
           }
@@ -119,21 +121,89 @@ export default defineContentScript({
     })
 
     /**
-     * RGBカラーコード文字列を #HEX形式に変換する
-     * @param {string} rgb - RGB文字列 (例: 'rgb(255, 255, 255)')
-     * @returns {string} HEXカラーコード(例: '#FFFFFF')
+     * 透明扱いの色かどうかを判定する
+     * @param {string} color - CSSの色文字列
+     * @returns {boolean} 透明なら true
      */
-    const rgbToColorCode = (rgb: string): string => {    
-      const match = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-      if (!match) {
-        // rgb以外のカラーで来た場合はそのまま返す
-        return rgb
-      }
-    
-      const [r, g, b] = match.slice(1, 4).map((v) => parseInt(v).toString(16).padStart(2, '0'))
-      return `#${r}${g}${b}`.toUpperCase()
+    const isTransparentColor = (color: string): boolean => {
+      const normalizedColor = color.trim().toLowerCase()
+      if (!normalizedColor || normalizedColor === 'transparent') return true
+      if (normalizedColor === 'rgba(0, 0, 0, 0)') return true
+      if (/^rgba?\(.+[,/]\s*0(?:\.0+)?%?\s*\)$/.test(normalizedColor)) return true
+      if (/^#(?:[0-9a-f]{3})?0{1,2}$/i.test(normalizedColor)) return true
+      return false
     }
-    
+
+    /**
+     * 表示される色として扱えるかどうかを判定する
+     * @param {string} color - CSSの色文字列
+     * @returns {boolean} 表示色なら true
+     */
+    const isVisibleColor = (color: string): boolean => {
+      return Boolean(color) && !isTransparentColor(color)
+    }
+
+    /**
+     * 半透明を含まない背景色として扱えるかどうかを判定する
+     * @param {string} color - CSSの色文字列
+     * @returns {boolean} 不透明な背景色なら true
+     */
+    const isOpaqueBackgroundColor = (color: string): boolean => {
+      return isVisibleColor(color) && !hasAlphaChannel(color)
+    }
+
+    /**
+     * 背景色としては親または子へ辿る必要があるかどうかを判定する
+     * @param {string} color - CSSの色文字列
+     * @returns {boolean} 透明または半透明なら true
+     */
+    const shouldTraverseBackgroundColor = (color: string): boolean => {
+      return isTransparentColor(color) || hasAlphaChannel(color)
+    }
+
+    /**
+     * アルファチャンネルを持つ色かどうかを判定する
+     * @param {string} color - CSSの色文字列
+     * @returns {boolean} アルファチャンネルがあれば true
+     */
+    const hasAlphaChannel = (color: string): boolean => {
+      const normalizedColor = color.trim().toLowerCase()
+      if (normalizedColor.startsWith('rgba(')) return true
+      if (/^rgb\(.+\/\s*(?!1(?:\.0+)?\s*\)$|100%\s*\)$).+\)$/.test(normalizedColor)) {
+        return true
+      }
+
+      const hex = normalizedColor.match(/^#([0-9a-f]{4}|[0-9a-f]{8})$/i)?.[1]
+      if (!hex) return false
+
+      const alpha = hex.length === 4 ? hex[3] + hex[3] : hex.slice(6, 8)
+      return alpha.toLowerCase() !== 'ff'
+    }
+
+    /**
+     * 画面上で見える要素かどうかを祖先要素まで含めて判定する
+     * @param {Element} element - 対象のHTML要素
+     * @returns {boolean} 見える要素なら true
+     */
+    const isVisibleElement = (element: Element): boolean => {
+      let current: Element | null = element
+
+      while (current) {
+        const style = window.getComputedStyle(current)
+        if (
+          style.display === 'none' ||
+          style.visibility === 'hidden' ||
+          style.visibility === 'collapse' ||
+          Number(style.opacity) === 0
+        ) {
+          return false
+        }
+        current = current.parentElement
+      }
+
+      return true
+    }
+
     /**
      * 透明な要素の背景色を親から辿って見た目の色を推定する
      * @param {Element[]} element - 対象のHTML要素
@@ -143,14 +213,12 @@ export default defineContentScript({
       let current: Element | null = element
       while (current) {
         const bg = window.getComputedStyle(current).backgroundColor
-        console.log(bg, 'bg')
-        const isTransparent = bg === 'transparent' || (bg.includes('rgba') && bg.endsWith(', 0)'))
-        if (!isTransparent && bg !== '') {
-          return rgbToColorCode(bg)
+        if (isOpaqueBackgroundColor(bg)) {
+          return bg
         }
         current = current.parentElement
       }
-      return '#FFFFFF'
+      return 'rgb(255, 255, 255)'
     }
 
     /**
@@ -164,15 +232,17 @@ export default defineContentScript({
       values.forEach((elm) => {
         const tag = elm.tagName.toUpperCase()
         const bg = window.getComputedStyle(elm).backgroundColor
-        console.log(bg, 'bg')
 
-        if (bg.includes('rgba') && (elm.children.length === 0 || noChildrenTags.includes(tag))) {
+        if (
+          shouldTraverseBackgroundColor(bg) &&
+          (elm.children.length === 0 || noChildrenTags.includes(tag))
+        ) {
           return
-        } else if (tag === 'HTML' || bg.includes('rgba')) {
+        } else if (tag === 'HTML' || shouldTraverseBackgroundColor(bg)) {
           Array.from(elm.children).forEach((child) => {
             if (
               !notApplicableTags.includes(child.tagName.toUpperCase()) &&
-              (child as HTMLElement).style.display !== 'none'
+              isVisibleElement(child)
             ) {
               elements.push(child)
             }
@@ -182,7 +252,11 @@ export default defineContentScript({
         }
       })
 
-      if (elements.some((el) => window.getComputedStyle(el).backgroundColor.includes('rgba'))) {
+      if (
+        elements.some((el) =>
+          shouldTraverseBackgroundColor(window.getComputedStyle(el).backgroundColor)
+        )
+      ) {
         return getColorElement(elements)
       }
 
@@ -191,7 +265,7 @@ export default defineContentScript({
         color: resolveEffectiveBackgroundColor(element),
         area: element.clientWidth * element.clientHeight,
         children: Array.from(element.children).filter(
-          (el) => !notApplicableTags.includes(el.tagName.toUpperCase())
+          (el) => !notApplicableTags.includes(el.tagName.toUpperCase()) && isVisibleElement(el)
         ),
       }))
     }
@@ -216,12 +290,38 @@ export default defineContentScript({
         )
           return
 
-        const childElements = getColorElement(Array.from(el.element.children))
+        const childElements = getDirectVisibleBackgroundChildren(el.element, el.color)
         const total = childElements.reduce((sum, c) => sum + c.area, 0)
         el.area = Math.max(el.area - total, 0)
       })
 
       return elements
+    }
+
+    /**
+     * 直下の子要素から、親背景を覆う表示背景だけを取得する
+     * @param {Element} element - 親のHTML要素
+     * @param {string} parentColor - 親要素の背景色
+     * @returns {{ area: number }[]} 親背景から差し引く子要素面積
+     */
+    const getDirectVisibleBackgroundChildren = (
+      element: Element,
+      parentColor: string
+    ): { area: number }[] => {
+      return Array.from(element.children)
+        .filter((child) => {
+          const tag = child.tagName.toUpperCase()
+          const bg = window.getComputedStyle(child).backgroundColor
+          return (
+            !notApplicableTags.includes(tag) &&
+            isVisibleElement(child) &&
+            isOpaqueBackgroundColor(bg) &&
+            bg !== parentColor
+          )
+        })
+        .map((child) => ({
+          area: child.clientWidth * child.clientHeight,
+        }))
     }
 
     /**

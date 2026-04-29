@@ -22,5 +22,8 @@
   },
   "Success_content_script_responded": {
     "message": "カラーの読み込みが完了しました！"
+  },
+  "Notice_color_conversion": {
+    "message": "RGB/HEX/HSL変換時、LAB/LCH/OKLab/OKLCH/display-p3はsRGBで表示可能な近い色に変換されます。"
   }
 }

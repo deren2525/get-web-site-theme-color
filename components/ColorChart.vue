@@ -1,5 +1,5 @@
 <template>
-  <canvas ref="chartCanvasRef" width="260" height="260"></canvas>
+  <canvas ref="chartCanvasRef" width="260" height="260" class="mx-auto"></canvas>
 </template>
 
 <script setup lang="ts">
@@ -19,6 +19,7 @@ const emit = defineEmits<{
 const chartInstance = ref<Chart | null>(null)
 const chartCanvasRef = ref<HTMLCanvasElement | null>(null)
 
+/** 現在のカラーデータで円グラフを再描画する */
 const renderChart = async () => {
   await nextTick()
   const ctx = chartCanvasRef.value
@@ -40,6 +41,7 @@ const renderChart = async () => {
       ],
     },
     options: {
+      responsive: false,
       plugins: {
         legend: { display: false },
         tooltip: {

@@ -22,5 +22,8 @@
   },
   "Success_content_script_responded": {
     "message": "Theme colors loaded successfully!"
+  },
+  "Notice_color_conversion": {
+    "message": "When converted to RGB, HEX, or HSL, LAB, LCH, OKLab, OKLCH, and display-p3 colors are converted to a close sRGB-displayable color."
   }
 }
