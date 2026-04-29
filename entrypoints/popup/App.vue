@@ -21,8 +21,8 @@
           {{ mode.label }}
         </button>
       </div>
-      <p v-if="showOklchNotice" class="c-oklch-notice">
-        {{ oklchNoticeText }}
+      <p v-if="showColorConversionNotice" class="c-color-conversion-notice">
+        {{ colorConversionNoticeText }}
       </p>
 
       <template v-if="activeTab === 0">
@@ -118,15 +118,17 @@ const convertedBackgroundColors = computed(() =>
 /** 文字色リストを選択中のカラーモードに変換する */
 const convertedTextColors = computed(() => convertColors(textColors.value, activeColorMode.value))
 
-/** OKLCH を別形式へ変換している場合だけ注意文言を表示する */
-const showOklchNotice = computed(
+/** 色域変換が必要な形式を別形式へ変換している場合だけ注意文言を表示する */
+const showColorConversionNotice = computed(
   () =>
     activeColorMode.value !== 'original' &&
-    [...backgroundColors.value, ...textColors.value].some(({ color }) => isOklchColor(color))
+    [...backgroundColors.value, ...textColors.value].some(({ color }) =>
+      needsColorConversionNotice(color)
+    )
 )
 
-/** OKLCH 変換時の注意文言を現在の言語から取得する */
-const oklchNoticeText = computed(() => chrome.i18n.getMessage('Notice_oklch_conversion'))
+/** 色域変換時の注意文言を現在の言語から取得する */
+const colorConversionNoticeText = computed(() => chrome.i18n.getMessage('Notice_color_conversion'))
 
 /** 色リスト全体を選択中の形式に変換し、同じ色になったものを再集計する */
 const convertColors = (colors: ChartColorData[], mode: ColorMode): ChartColorData[] => {
@@ -154,7 +156,7 @@ const convertColor = (color: string, mode: ColorMode): string => {
   return formatRgbColor(parsedColor)
 }
 
-/** HEX / RGB / RGBA / OKLCH の色文字列を共通のRGBA値に変換する */
+/** HEX / RGB / RGBA / HSL / HSLA / LAB / LCH / OKLab / OKLCH / display-p3の色文字列を共通のRGBA値に変換する */
 const parseColor = (color: string): ParsedColor | null => {
   const normalizedColor = color.trim()
 
@@ -162,16 +164,73 @@ const parseColor = (color: string): ParsedColor | null => {
     return parseHexColor(normalizedColor)
   }
 
+  if (isHslColor(normalizedColor)) {
+    return parseHslColor(normalizedColor)
+  }
+
+  if (isLabColor(normalizedColor)) {
+    return parseLabColor(normalizedColor)
+  }
+
+  if (isLchColor(normalizedColor)) {
+    return parseLchColor(normalizedColor)
+  }
+
+  if (isOklabColor(normalizedColor)) {
+    return parseOklabColor(normalizedColor)
+  }
+
   if (isOklchColor(normalizedColor)) {
     return parseOklchColor(normalizedColor)
+  }
+
+  if (isDisplayP3Color(normalizedColor)) {
+    return parseDisplayP3Color(normalizedColor)
   }
 
   return parseRgbColor(normalizedColor)
 }
 
+/** RGB色域へ丸める可能性がある色形式かどうかを判定する */
+const needsColorConversionNotice = (color: string): boolean => {
+  return (
+    isLabColor(color) ||
+    isLchColor(color) ||
+    isOklabColor(color) ||
+    isOklchColor(color) ||
+    isDisplayP3Color(color)
+  )
+}
+
+/** HSL / HSLA形式の色文字列かどうかを判定する */
+const isHslColor = (color: string): boolean => {
+  const normalizedColor = color.trim().toLowerCase()
+  return normalizedColor.startsWith('hsl(') || normalizedColor.startsWith('hsla(')
+}
+
+/** Lab形式の色文字列かどうかを判定する */
+const isLabColor = (color: string): boolean => {
+  return color.trim().toLowerCase().startsWith('lab(')
+}
+
+/** LCH形式の色文字列かどうかを判定する */
+const isLchColor = (color: string): boolean => {
+  return color.trim().toLowerCase().startsWith('lch(')
+}
+
+/** OKLab形式の色文字列かどうかを判定する */
+const isOklabColor = (color: string): boolean => {
+  return color.trim().toLowerCase().startsWith('oklab(')
+}
+
 /** OKLCH形式の色文字列かどうかを判定する */
 const isOklchColor = (color: string): boolean => {
   return color.trim().toLowerCase().startsWith('oklch(')
+}
+
+/** color(display-p3 ...)形式の色文字列かどうかを判定する */
+const isDisplayP3Color = (color: string): boolean => {
+  return color.trim().toLowerCase().startsWith('color(display-p3')
 }
 
 /** HEX形式をRGBA値に変換する */
@@ -189,6 +248,54 @@ const parseHexColor = (color: string): ParsedColor | null => {
   return { r, g, b, a }
 }
 
+/** HSL / HSLA形式をRGBA値に変換する */
+const parseHslColor = (color: string): ParsedColor | null => {
+  const match = color.match(
+    /^hsla?\(\s*([+-]?[\d.]+)(?:deg)?\s*(?:,|\s)\s*([+-]?[\d.]+%)\s*(?:,|\s)\s*([+-]?[\d.]+%)(?:\s*(?:,|\/)\s*([+-]?[\d.]+%?))?\s*\)$/i
+  )
+  if (!match) return null
+
+  const hue = normalizeHue(parseFloat(match[1]))
+  const saturation = clamp(parseFloat(match[2]) / 100, 0, 1)
+  const lightness = clamp(parseFloat(match[3]) / 100, 0, 1)
+  const a = match[4] ? parseAlphaChannel(match[4]) : 1
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation
+  const huePrime = hue / 60
+  const x = chroma * (1 - Math.abs((huePrime % 2) - 1))
+  const m = lightness - chroma / 2
+
+  let r = 0
+  let g = 0
+  let b = 0
+
+  if (huePrime < 1) {
+    r = chroma
+    g = x
+  } else if (huePrime < 2) {
+    r = x
+    g = chroma
+  } else if (huePrime < 3) {
+    g = chroma
+    b = x
+  } else if (huePrime < 4) {
+    g = x
+    b = chroma
+  } else if (huePrime < 5) {
+    r = x
+    b = chroma
+  } else {
+    r = chroma
+    b = x
+  }
+
+  return {
+    r: clamp(Math.round((r + m) * 255), 0, 255),
+    g: clamp(Math.round((g + m) * 255), 0, 255),
+    b: clamp(Math.round((b + m) * 255), 0, 255),
+    a,
+  }
+}
+
 /** RGB / RGBA形式をRGBA値に変換する */
 const parseRgbColor = (color: string): ParsedColor | null => {
   const match = color.match(
@@ -200,6 +307,53 @@ const parseRgbColor = (color: string): ParsedColor | null => {
   const a = match[4] ? parseAlphaChannel(match[4]) : 1
 
   return { r, g, b, a }
+}
+
+/** Lab形式をsRGBのRGBA値に変換する */
+const parseLabColor = (color: string): ParsedColor | null => {
+  const match = color.match(
+    /^lab\(\s*([+-]?[\d.]+%?)\s+([+-]?[\d.]+%?)\s+([+-]?[\d.]+%?)(?:\s*\/\s*([+-]?[\d.]+%?))?\s*\)$/i
+  )
+  if (!match) return null
+
+  const lightness = parseLabLightness(match[1])
+  const a = parseLabAxis(match[2])
+  const b = parseLabAxis(match[3])
+  const alpha = match[4] ? parseAlphaChannel(match[4]) : 1
+
+  return labToRgb(lightness, a, b, alpha)
+}
+
+/** LCH形式をLab経由でsRGBのRGBA値に変換する */
+const parseLchColor = (color: string): ParsedColor | null => {
+  const match = color.match(
+    /^lch\(\s*([+-]?[\d.]+%?)\s+([+-]?[\d.]+%?)\s+([+-]?[\d.]+)(?:deg)?(?:\s*\/\s*([+-]?[\d.]+%?))?\s*\)$/i
+  )
+  if (!match) return null
+
+  const lightness = parseLabLightness(match[1])
+  const chroma = parseLchChroma(match[2])
+  const hueRadians = (parseFloat(match[3]) * Math.PI) / 180
+  const alpha = match[4] ? parseAlphaChannel(match[4]) : 1
+  const a = chroma * Math.cos(hueRadians)
+  const b = chroma * Math.sin(hueRadians)
+
+  return labToRgb(lightness, a, b, alpha)
+}
+
+/** OKLab形式をsRGBのRGBA値に変換する */
+const parseOklabColor = (color: string): ParsedColor | null => {
+  const match = color.match(
+    /^oklab\(\s*([+-]?[\d.]+%?)\s+([+-]?[\d.]+%?)\s+([+-]?[\d.]+%?)(?:\s*\/\s*([+-]?[\d.]+%?))?\s*\)$/i
+  )
+  if (!match) return null
+
+  const lightness = parseOklabLightness(match[1])
+  const a = parseOklabAxis(match[2])
+  const b = parseOklabAxis(match[3])
+  const alpha = match[4] ? parseAlphaChannel(match[4]) : 1
+
+  return oklabToRgb(lightness, a, b, alpha)
 }
 
 /** OKLCH形式をOKLab経由でsRGBのRGBA値に変換する */
@@ -217,6 +371,51 @@ const parseOklchColor = (color: string): ParsedColor | null => {
   const oklabB = chroma * Math.sin(hueRadians)
 
   return oklabToRgb(lightness, oklabA, oklabB, a)
+}
+
+/** color(display-p3 ...)形式をsRGBのRGBA値に変換する */
+const parseDisplayP3Color = (color: string): ParsedColor | null => {
+  const match = color.match(
+    /^color\(\s*display-p3\s+([+-]?[\d.]+%?)\s+([+-]?[\d.]+%?)\s+([+-]?[\d.]+%?)(?:\s*\/\s*([+-]?[\d.]+%?))?\s*\)$/i
+  )
+  if (!match) return null
+
+  const r = parseColorFunctionChannel(match[1])
+  const g = parseColorFunctionChannel(match[2])
+  const b = parseColorFunctionChannel(match[3])
+  const a = match[4] ? parseAlphaChannel(match[4]) : 1
+
+  return displayP3ToRgb(r, g, b, a)
+}
+
+/** Lab / LCHのlightnessを0-100の範囲に正規化する */
+const parseLabLightness = (value: string): number => {
+  const lightness = value.endsWith('%') ? parseFloat(value) : parseFloat(value)
+  return clamp(lightness, 0, 100)
+}
+
+/** Labのa/b軸を数値に変換する */
+const parseLabAxis = (value: string): number => {
+  const axis = value.endsWith('%') ? parseFloat(value) * 1.25 : parseFloat(value)
+  return Number.isNaN(axis) ? 0 : axis
+}
+
+/** LCHのchromaを数値に変換する */
+const parseLchChroma = (value: string): number => {
+  const chroma = value.endsWith('%') ? parseFloat(value) * 1.5 : parseFloat(value)
+  return Math.max(Number.isNaN(chroma) ? 0 : chroma, 0)
+}
+
+/** OKLabのlightnessを0-1の範囲に正規化する */
+const parseOklabLightness = (value: string): number => {
+  const lightness = value.endsWith('%') ? parseFloat(value) / 100 : parseFloat(value)
+  return clamp(lightness, 0, 1)
+}
+
+/** OKLabのa/b軸を数値に変換する */
+const parseOklabAxis = (value: string): number => {
+  const axis = value.endsWith('%') ? parseFloat(value) / 100 : parseFloat(value)
+  return Number.isNaN(axis) ? 0 : axis
 }
 
 /** OKLCHのlightnessを0-1の範囲に正規化する */
@@ -253,6 +452,70 @@ const oklabToRgb = (l: number, a: number, b: number, alpha: number): ParsedColor
   }
 }
 
+/** LabのL/a/b値をsRGBのRGBA値に変換する */
+const labToRgb = (l: number, a: number, b: number, alpha: number): ParsedColor => {
+  const y = (l + 16) / 116
+  const x = y + a / 500
+  const z = y - b / 200
+
+  const xyzD50 = {
+    x: 0.96422 * labInverseTransfer(x),
+    y: labInverseTransfer(y),
+    z: 0.82521 * labInverseTransfer(z),
+  }
+
+  const xyzD65 = {
+    x: 0.9555766 * xyzD50.x - 0.0230393 * xyzD50.y + 0.0631636 * xyzD50.z,
+    y: -0.0282895 * xyzD50.x + 1.0099416 * xyzD50.y + 0.0210077 * xyzD50.z,
+    z: 0.0122982 * xyzD50.x - 0.020483 * xyzD50.y + 1.3299098 * xyzD50.z,
+  }
+
+  return xyzD65ToRgb(xyzD65.x, xyzD65.y, xyzD65.z, alpha)
+}
+
+/** Lab変換用の非線形値をXYZ用の線形値へ戻す */
+const labInverseTransfer = (value: number): number => {
+  const delta = 6 / 29
+  if (value > delta) return value ** 3
+
+  return 3 * delta ** 2 * (value - 4 / 29)
+}
+
+/** display-p3のRGB値をsRGBのRGBA値に変換する */
+const displayP3ToRgb = (r: number, g: number, b: number, alpha: number): ParsedColor => {
+  const linearR = srgbToLinearRgbChannel(r)
+  const linearG = srgbToLinearRgbChannel(g)
+  const linearB = srgbToLinearRgbChannel(b)
+
+  const x = 0.4865709486 * linearR + 0.2656676932 * linearG + 0.1982172852 * linearB
+  const y = 0.2289745641 * linearR + 0.6917385218 * linearG + 0.0792869141 * linearB
+  const z = 0.0451133819 * linearG + 1.0439443689 * linearB
+
+  return xyzD65ToRgb(x, y, z, alpha)
+}
+
+/** XYZ D65値をsRGBのRGBA値に変換する */
+const xyzD65ToRgb = (x: number, y: number, z: number, alpha: number): ParsedColor => {
+  const linearR = 3.2409699419 * x - 1.5373831776 * y - 0.4986107603 * z
+  const linearG = -0.9692436363 * x + 1.8759675015 * y + 0.0415550574 * z
+  const linearB = 0.0556300797 * x - 0.2039769589 * y + 1.0569715142 * z
+
+  return {
+    r: linearRgbToRgbChannel(linearR),
+    g: linearRgbToRgbChannel(linearG),
+    b: linearRgbToRgbChannel(linearB),
+    a: alpha,
+  }
+}
+
+/** sRGB伝達関数の0-1値をlinear RGB値に変換する */
+const srgbToLinearRgbChannel = (value: number): number => {
+  const clampedValue = clamp(value, 0, 1)
+  if (clampedValue <= 0.04045) return clampedValue / 12.92
+
+  return ((clampedValue + 0.055) / 1.055) ** 2.4
+}
+
 /** linear RGBの0-1値をsRGBの0-255チャンネル値に変換する */
 const linearRgbToRgbChannel = (value: number): number => {
   const clampedValue = clamp(value, 0, 1)
@@ -271,6 +534,15 @@ const parseRgbChannel = (value: string): number => {
   return clamp(Math.round(parseFloat(value)), 0, 255)
 }
 
+/** color()関数内のチャンネル値を0-1の数値に変換する */
+const parseColorFunctionChannel = (value: string): number => {
+  if (value.endsWith('%')) {
+    return clamp(parseFloat(value) / 100, 0, 1)
+  }
+
+  return clamp(parseFloat(value), 0, 1)
+}
+
 /** alpha値を0-1の数値に変換する */
 const parseAlphaChannel = (value: string): number => {
   if (value.endsWith('%')) {
@@ -284,6 +556,13 @@ const parseAlphaChannel = (value: string): number => {
 const clamp = (value: number, min: number, max: number): number => {
   if (Number.isNaN(value)) return min
   return Math.min(Math.max(value, min), max)
+}
+
+/** hueを0-360の範囲に正規化する */
+const normalizeHue = (value: number): number => {
+  if (Number.isNaN(value)) return 0
+
+  return ((value % 360) + 360) % 360
 }
 
 /** RGBA値をHEX / HEXA形式の文字列に変換する */
@@ -479,7 +758,7 @@ onMounted(() => {
   @apply text-white bg-primary;
 }
 
-.c-oklch-notice {
+.c-color-conversion-notice {
   @apply m-0 border-l-[3px] border-status-error bg-white px-[10px] py-[8px] text-[12px] font-bold leading-[1.5] text-status-error;
 }
 </style>

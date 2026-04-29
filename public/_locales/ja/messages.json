@@ -23,7 +23,7 @@
   "Success_content_script_responded": {
     "message": "カラーの読み込みが完了しました！"
   },
-  "Notice_oklch_conversion": {
-    "message": "OKLCHはRGB/HEX/HSLに変換する際、表示可能な色域に合わせて近い色へ丸められる場合があります。"
+  "Notice_color_conversion": {
+    "message": "RGB/HEX/HSL変換時、LAB/LCH/OKLab/OKLCH/display-p3はsRGBで表示可能な近い色に変換されます。"
   }
 }
