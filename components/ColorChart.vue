@@ -1,5 +1,5 @@
 <template>
-  <canvas ref="chartCanvasRef" width="260" height="260"></canvas>
+  <canvas ref="chartCanvasRef" width="260" height="260" class="mx-auto"></canvas>
 </template>
 
 <script setup lang="ts">
@@ -40,6 +40,7 @@ const renderChart = async () => {
       ],
     },
     options: {
+      responsive: false,
       plugins: {
         legend: { display: false },
         tooltip: {

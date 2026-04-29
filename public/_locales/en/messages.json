@@ -22,5 +22,8 @@
   },
   "Success_content_script_responded": {
     "message": "Theme colors loaded successfully!"
+  },
+  "Notice_oklch_conversion": {
+    "message": "OKLCH colors may be rounded to the nearest displayable color when converted to RGB, HEX, or HSL."
   }
 }

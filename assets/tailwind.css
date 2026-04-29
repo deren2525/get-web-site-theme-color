@@ -12,7 +12,7 @@
 
 @layer base {
   body {
-    @apply w-[300px] bg-background p-0 m-0 box-border;
+    @apply w-[400px] bg-background p-0 m-0 box-border;
   }
 
   p {
