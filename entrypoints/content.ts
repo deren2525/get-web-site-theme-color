@@ -64,14 +64,14 @@ export default defineContentScript({
       if (htmlArea) {
         allBackgroundColors.push({
           element: htmlElement,
-          color: rgbToColorCode(htmlBg),
+          color: htmlBg,
           area: Math.max(window.innerWidth * window.innerHeight - otherArea, 0),
           children: Array.from(htmlElement.children),
         })
       } else if (!bodyArea && window.innerWidth * window.innerHeight - otherArea > 0) {
         allBackgroundColors.push({
           element: null,
-          color: '#FFFFFF',
+          color: 'rgb(255, 255, 255)',
           area: Math.max(window.innerWidth * window.innerHeight - otherArea, 0),
           children: [],
         })
@@ -100,7 +100,7 @@ export default defineContentScript({
 
           if (textLength) {
             allTextColors.push({
-              colorCode: rgbToColorCode(color),
+              colorCode: color,
               area: textLength,
             })
           }
@@ -119,22 +119,6 @@ export default defineContentScript({
     })
 
     /**
-     * RGBカラーコード文字列を #HEX形式に変換する
-     * @param {string} rgb - RGB文字列 (例: 'rgb(255, 255, 255)')
-     * @returns {string} HEXカラーコード(例: '#FFFFFF')
-     */
-    const rgbToColorCode = (rgb: string): string => {    
-      const match = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-      if (!match) {
-        // rgb以外のカラーで来た場合はそのまま返す
-        return rgb
-      }
-    
-      const [r, g, b] = match.slice(1, 4).map((v) => parseInt(v).toString(16).padStart(2, '0'))
-      return `#${r}${g}${b}`.toUpperCase()
-    }
-    
-    /**
      * 透明な要素の背景色を親から辿って見た目の色を推定する
      * @param {Element[]} element - 対象のHTML要素
      * @returns {string} カラーコード
@@ -146,11 +130,11 @@ export default defineContentScript({
         console.log(bg, 'bg')
         const isTransparent = bg === 'transparent' || (bg.includes('rgba') && bg.endsWith(', 0)'))
         if (!isTransparent && bg !== '') {
-          return rgbToColorCode(bg)
+          return bg
         }
         current = current.parentElement
       }
-      return '#FFFFFF'
+      return 'rgb(255, 255, 255)'
     }
 
     /**
