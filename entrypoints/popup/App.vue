@@ -110,27 +110,26 @@ const textColors: Ref<ChartColorData[]> = ref([])
 // Toast のインスタンス
 const toastRef = ref<ComponentPublicInstance<ToastExpose> | null>(null)
 
-// 背景色リストを選択中のカラーモードに変換する
+/** 背景色リストを選択中のカラーモードに変換する */
 const convertedBackgroundColors = computed(() =>
   convertColors(backgroundColors.value, activeColorMode.value)
 )
 
-// 文字色リストを選択中のカラーモードに変換する
+/** 文字色リストを選択中のカラーモードに変換する */
 const convertedTextColors = computed(() => convertColors(textColors.value, activeColorMode.value))
 
-// OKLCH を別形式へ変換している場合だけ注意文言を表示する
+/** OKLCH を別形式へ変換している場合だけ注意文言を表示する */
 const showOklchNotice = computed(
   () =>
     activeColorMode.value !== 'original' &&
     [...backgroundColors.value, ...textColors.value].some(({ color }) => isOklchColor(color))
 )
 
-// OKLCH 変換時の注意文言を現在の言語から取得する
+/** OKLCH 変換時の注意文言を現在の言語から取得する */
 const oklchNoticeText = computed(() => chrome.i18n.getMessage('Notice_oklch_conversion'))
 
-
- // 色リスト全体を選択中の形式に変換し、同じ色になったものを再集計する
-function convertColors(colors: ChartColorData[], mode: ColorMode): ChartColorData[] {
+/** 色リスト全体を選択中の形式に変換し、同じ色になったものを再集計する */
+const convertColors = (colors: ChartColorData[], mode: ColorMode): ChartColorData[] => {
   const grouped = new Map<string, number>()
 
   colors.forEach(({ color, value }) => {
@@ -143,8 +142,8 @@ function convertColors(colors: ChartColorData[], mode: ColorMode): ChartColorDat
   )
 }
 
-// 1つの色文字列を選択中の表示形式に変換する
-function convertColor(color: string, mode: ColorMode): string {
+/** 1つの色文字列を選択中の表示形式に変換する */
+const convertColor = (color: string, mode: ColorMode): string => {
   if (mode === 'original') return color
 
   const parsedColor = parseColor(color)
@@ -155,8 +154,8 @@ function convertColor(color: string, mode: ColorMode): string {
   return formatRgbColor(parsedColor)
 }
 
-// HEX / RGB / RGBA / OKLCH の色文字列を共通のRGBA値に変換する
-function parseColor(color: string): ParsedColor | null {
+/** HEX / RGB / RGBA / OKLCH の色文字列を共通のRGBA値に変換する */
+const parseColor = (color: string): ParsedColor | null => {
   const normalizedColor = color.trim()
 
   if (normalizedColor.startsWith('#')) {
@@ -170,13 +169,13 @@ function parseColor(color: string): ParsedColor | null {
   return parseRgbColor(normalizedColor)
 }
 
-// OKLCH形式の色文字列かどうかを判定する
-function isOklchColor(color: string): boolean {
+/** OKLCH形式の色文字列かどうかを判定する */
+const isOklchColor = (color: string): boolean => {
   return color.trim().toLowerCase().startsWith('oklch(')
 }
 
-// HEX形式をRGBA値に変換する
-function parseHexColor(color: string): ParsedColor | null {
+/** HEX形式をRGBA値に変換する */
+const parseHexColor = (color: string): ParsedColor | null => {
   const hex = color.slice(1)
   if (![3, 4, 6, 8].includes(hex.length) || !/^[\da-f]+$/i.test(hex)) return null
 
@@ -190,8 +189,8 @@ function parseHexColor(color: string): ParsedColor | null {
   return { r, g, b, a }
 }
 
-// RGB / RGBA形式をRGBA値に変換する
-function parseRgbColor(color: string): ParsedColor | null {
+/** RGB / RGBA形式をRGBA値に変換する */
+const parseRgbColor = (color: string): ParsedColor | null => {
   const match = color.match(
     /^rgba?\(\s*([\d.]+%?)\s*(?:,|\s)\s*([\d.]+%?)\s*(?:,|\s)\s*([\d.]+%?)(?:\s*(?:,|\/)\s*([\d.]+%?))?\s*\)$/i
   )
@@ -203,8 +202,8 @@ function parseRgbColor(color: string): ParsedColor | null {
   return { r, g, b, a }
 }
 
-// OKLCH形式をOKLab経由でsRGBのRGBA値に変換する
-function parseOklchColor(color: string): ParsedColor | null {
+/** OKLCH形式をOKLab経由でsRGBのRGBA値に変換する */
+const parseOklchColor = (color: string): ParsedColor | null => {
   const match = color.match(
     /^oklch\(\s*([+-]?[\d.]+%?)\s+([+-]?[\d.]+%?)\s+([+-]?[\d.]+)(?:deg)?(?:\s*\/\s*([+-]?[\d.]+%?))?\s*\)$/i
   )
@@ -220,20 +219,20 @@ function parseOklchColor(color: string): ParsedColor | null {
   return oklabToRgb(lightness, oklabA, oklabB, a)
 }
 
-// OKLCHのlightnessを0-1の範囲に正規化する
-function parseOklchLightness(value: string): number {
+/** OKLCHのlightnessを0-1の範囲に正規化する */
+const parseOklchLightness = (value: string): number => {
   const lightness = value.endsWith('%') ? parseFloat(value) / 100 : parseFloat(value)
   return clamp(lightness, 0, 1)
 }
 
-// OKLCHのchromaを数値に変換する
-function parseOklchChroma(value: string): number {
+/** OKLCHのchromaを数値に変換する */
+const parseOklchChroma = (value: string): number => {
   const chroma = value.endsWith('%') ? parseFloat(value) / 100 : parseFloat(value)
   return Math.max(Number.isNaN(chroma) ? 0 : chroma, 0)
 }
 
-// OKLabのL/a/b値をsRGBのRGBA値に変換する
-function oklabToRgb(l: number, a: number, b: number, alpha: number): ParsedColor {
+/** OKLabのL/a/b値をsRGBのRGBA値に変換する */
+const oklabToRgb = (l: number, a: number, b: number, alpha: number): ParsedColor => {
   const lPrime = l + 0.3963377774 * a + 0.2158037573 * b
   const mPrime = l - 0.1055613458 * a - 0.0638541728 * b
   const sPrime = l - 0.0894841775 * a - 1.291485548 * b
@@ -254,8 +253,8 @@ function oklabToRgb(l: number, a: number, b: number, alpha: number): ParsedColor
   }
 }
 
-// linear RGBの0-1値をsRGBの0-255チャンネル値に変換する
-function linearRgbToRgbChannel(value: number): number {
+/** linear RGBの0-1値をsRGBの0-255チャンネル値に変換する */
+const linearRgbToRgbChannel = (value: number): number => {
   const clampedValue = clamp(value, 0, 1)
   const srgb =
     clampedValue <= 0.0031308 ? 12.92 * clampedValue : 1.055 * clampedValue ** (1 / 2.4) - 0.055
@@ -263,8 +262,8 @@ function linearRgbToRgbChannel(value: number): number {
   return clamp(Math.round(srgb * 255), 0, 255)
 }
 
-// RGBの各チャンネルを0-255の数値に変換する
-function parseRgbChannel(value: string): number {
+/** RGBの各チャンネルを0-255の数値に変換する */
+const parseRgbChannel = (value: string): number => {
   if (value.endsWith('%')) {
     return clamp(Math.round((parseFloat(value) / 100) * 255), 0, 255)
   }
@@ -272,8 +271,8 @@ function parseRgbChannel(value: string): number {
   return clamp(Math.round(parseFloat(value)), 0, 255)
 }
 
-// alpha値を0-1の数値に変換する
-function parseAlphaChannel(value: string): number {
+/** alpha値を0-1の数値に変換する */
+const parseAlphaChannel = (value: string): number => {
   if (value.endsWith('%')) {
     return clamp(parseFloat(value) / 100, 0, 1)
   }
@@ -281,14 +280,14 @@ function parseAlphaChannel(value: string): number {
   return clamp(parseFloat(value), 0, 1)
 }
 
-// 数値を指定範囲内に収める
-function clamp(value: number, min: number, max: number): number {
+/** 数値を指定範囲内に収める */
+const clamp = (value: number, min: number, max: number): number => {
   if (Number.isNaN(value)) return min
   return Math.min(Math.max(value, min), max)
 }
 
-// RGBA値をHEX / HEXA形式の文字列に変換する
-function formatHexColor({ r, g, b, a }: ParsedColor): string {
+/** RGBA値をHEX / HEXA形式の文字列に変換する */
+const formatHexColor = ({ r, g, b, a }: ParsedColor): string => {
   const rgbHex = [r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')
   if (a >= 1) return `#${rgbHex}`.toUpperCase()
 
@@ -298,16 +297,16 @@ function formatHexColor({ r, g, b, a }: ParsedColor): string {
   return `#${rgbHex}${alphaHex}`.toUpperCase()
 }
 
-// RGBA値をRGB / RGBA形式の文字列に変換する
-function formatRgbColor({ r, g, b, a }: ParsedColor): string {
+/** RGBA値をRGB / RGBA形式の文字列に変換する */
+const formatRgbColor = ({ r, g, b, a }: ParsedColor): string => {
   if (a >= 1) return `rgb(${r}, ${g}, ${b})`
 
   const alpha = Number(a.toFixed(3)).toString()
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-// RGBA値をHSL / HSLA形式の文字列に変換する
-function formatHslColor({ r, g, b, a }: ParsedColor): string {
+/** RGBA値をHSL / HSLA形式の文字列に変換する */
+const formatHslColor = ({ r, g, b, a }: ParsedColor): string => {
   const red = r / 255
   const green = g / 255
   const blue = b / 255
@@ -345,7 +344,7 @@ function formatHslColor({ r, g, b, a }: ParsedColor): string {
  * カラーコードコピー＆トースト表示
  * @param text トーストメッセージ
  */
-function copyText(text: string): void {
+const copyText = (text: string): void => {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(text)
     toastRef.value?.showToast(chrome.i18n.getMessage('Success_copy_color'), 'success')

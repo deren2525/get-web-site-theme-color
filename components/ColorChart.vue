@@ -19,6 +19,7 @@ const emit = defineEmits<{
 const chartInstance = ref<Chart | null>(null)
 const chartCanvasRef = ref<HTMLCanvasElement | null>(null)
 
+/** 現在のカラーデータで円グラフを再描画する */
 const renderChart = async () => {
   await nextTick()
   const ctx = chartCanvasRef.value
