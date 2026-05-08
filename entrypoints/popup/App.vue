@@ -101,17 +101,17 @@ type ParsedColor = {
 }
 
 const activeTab = ref<number>(0)
-const activeColorMode = ref<ColorMode>('original')
+const activeColorMode = ref<ColorMode>('hex')
 const loading = ref<boolean>(true)
 const showSlowLoadingNotice = ref<boolean>(false)
 const slowLoadingNoticeDelayMs = 2000
 let slowLoadingTimer: number | null = null
 
 const colorModes: { label: string; value: ColorMode }[] = [
-  { label: 'Original', value: 'original' },
-  { label: 'RGB/RGBA', value: 'rgb' },
   { label: 'HEX', value: 'hex' },
+  { label: 'RGB/RGBA', value: 'rgb' },
   { label: 'HSL/HSLA', value: 'hsl' },
+  { label: 'Original', value: 'original' },
 ]
 
 // データ（背景色・文字色）
