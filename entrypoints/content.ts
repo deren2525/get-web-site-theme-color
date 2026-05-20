@@ -47,7 +47,11 @@ export default defineContentScript({
     }[] = []
     let authoredStyleLookupDeadline = 0
 
-    chrome.runtime.onMessage.addListener((_request, _sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (sender.id !== chrome.runtime.id || request?.type !== 'GET_THEME_COLORS') {
+        return false
+      }
+
       allBackgroundColors = []
       cachedAuthoredStyleRules = null
       authoredStyleLookupDeadline = performance.now() + 500
