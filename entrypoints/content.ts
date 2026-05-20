@@ -33,6 +33,7 @@ export default defineContentScript({
     ]
     // 子要素を持たない特殊タグ
     const noChildrenTags = ['INPUT', 'TEXTAREA', 'OPTION', 'KEYGEN', 'HR', 'BDI', 'BDO', 'COL']
+    const textLengthIgnoredTags = ['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'KEYGEN']
 
     const htmlElement = document.documentElement
     const bodyElement = document.body
@@ -99,8 +100,8 @@ export default defineContentScript({
           let textLength = 0
           const tag = element.tagName.toUpperCase()
 
-          if (tag === 'INPUT') {
-            textLength = (element as HTMLInputElement).value.length
+          if (textLengthIgnoredTags.includes(tag)) {
+            return
           } else if (tag === 'BUTTON') {
             const el = element as HTMLButtonElement
             textLength = el.value?.length || el.textContent?.length || 0
