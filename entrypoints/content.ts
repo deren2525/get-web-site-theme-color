@@ -1,5 +1,5 @@
 export default defineContentScript({
-  matches: ['<all_urls>'],
+  matches: ['http://*/*', 'https://*/*'],
   main() {
     // 計算を無視するタグ一覧
     const notApplicableTags = [
