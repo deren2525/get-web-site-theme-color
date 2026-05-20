@@ -21,7 +21,7 @@ export default defineConfig({
         '19': 'icon/icon.png',
       },
     },
-    permissions: ['activeTab', 'tabs'],
+    permissions: ['activeTab'],
     icons: {
       '16': 'icon/icon.png',
       '48': 'icon/icon.png',
@@ -31,12 +31,5 @@ export default defineConfig({
       extension_pages: "script-src 'self'; object-src 'self'",
       sandbox: "sandbox allow-scripts; script-src 'self'; object-src 'self'",
     },
-    content_scripts: [
-      {
-        matches: ['http://*/*', 'https://*/*'],
-        js: ['content-scripts/content.js'],
-      },
-    ],
-    host_permissions: ['<all_urls>'],
   },
 })

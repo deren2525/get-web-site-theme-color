@@ -701,7 +701,7 @@ onMounted(() => {
       return
     }
 
-    chrome.tabs.sendMessage(currentTab.id, {}, (val) => {
+    chrome.tabs.sendMessage(currentTab.id, { type: 'GET_THEME_COLORS' }, (val) => {
       finishLoading()
       // エラーハンドリング
       if (chrome.runtime.lastError) {
