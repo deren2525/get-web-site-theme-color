@@ -1,5 +1,5 @@
 export default defineContentScript({
-  matches: ['<all_urls>'],
+  matches: ['http://*/*', 'https://*/*'],
   main() {
     // 計算を無視するタグ一覧
     const notApplicableTags = [
@@ -33,6 +33,7 @@ export default defineContentScript({
     ]
     // 子要素を持たない特殊タグ
     const noChildrenTags = ['INPUT', 'TEXTAREA', 'OPTION', 'KEYGEN', 'HR', 'BDI', 'BDO', 'COL']
+    const textLengthIgnoredTags = ['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'KEYGEN']
 
     const htmlElement = document.documentElement
     const bodyElement = document.body
@@ -40,12 +41,21 @@ export default defineContentScript({
     let allBackgroundColors: {
       element: Element | null
       color: string
+      computedColor: string
       area: number
       children: Element[]
     }[] = []
+    let authoredStyleLookupDeadline = 0
 
-    chrome.runtime.onMessage.addListener((_request, _sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (sender.id !== chrome.runtime.id || request?.type !== 'GET_THEME_COLORS') {
+        return false
+      }
+
       allBackgroundColors = []
+      cachedAuthoredStyleRules = null
+      authoredStyleLookupDeadline = performance.now() + 500
+      const authoredStyleRules = getAuthoredStyleRules()
 
       const parentElements = getColorElement([htmlElement])
       totalElementArea(parentElements).forEach((v) => allBackgroundColors.push(v))
@@ -66,7 +76,8 @@ export default defineContentScript({
       if (htmlArea) {
         allBackgroundColors.push({
           element: htmlElement,
-          color: htmlBg,
+          color: getDeclaredColor(htmlElement, 'background-color', authoredStyleRules) ?? htmlBg,
+          computedColor: htmlBg,
           area: Math.max(window.innerWidth * window.innerHeight - otherArea, 0),
           children: Array.from(htmlElement.children),
         })
@@ -74,6 +85,7 @@ export default defineContentScript({
         allBackgroundColors.push({
           element: null,
           color: 'rgb(255, 255, 255)',
+          computedColor: 'rgb(255, 255, 255)',
           area: Math.max(window.innerWidth * window.innerHeight - otherArea, 0),
           children: [],
         })
@@ -83,16 +95,17 @@ export default defineContentScript({
         (el) => !notApplicableTags.includes(el.tagName.toUpperCase()) && isVisibleElement(el)
       )
 
-      const allTextColors: { colorCode: string; area: number }[] = []
+      const allTextColors: { colorCode: string; computedColor: string; area: number }[] = []
 
       elements.forEach((element) => {
-        const color = window.getComputedStyle(element).color
-        if (isVisibleColor(color)) {
+        const computedColor = window.getComputedStyle(element).color
+        if (isVisibleColor(computedColor)) {
+          const color = resolveInheritedDeclaredColor(element, authoredStyleRules) ?? computedColor
           let textLength = 0
           const tag = element.tagName.toUpperCase()
 
-          if (tag === 'INPUT') {
-            textLength = (element as HTMLInputElement).value.length
+          if (textLengthIgnoredTags.includes(tag)) {
+            return
           } else if (tag === 'BUTTON') {
             const el = element as HTMLButtonElement
             textLength = el.value?.length || el.textContent?.length || 0
@@ -103,6 +116,7 @@ export default defineContentScript({
           if (textLength) {
             allTextColors.push({
               colorCode: color,
+              computedColor,
               area: textLength,
             })
           }
@@ -110,10 +124,18 @@ export default defineContentScript({
       })
 
       const backgroundColors = countColors(
-        allBackgroundColors.map((c) => ({ color: c.color, value: c.area }))
+        allBackgroundColors.map((c) => ({
+          color: c.color,
+          computedColor: c.computedColor,
+          value: c.area,
+        }))
       )
       const textColors = countColors(
-        allTextColors.map((c) => ({ color: c.colorCode, value: c.area }))
+        allTextColors.map((c) => ({
+          color: c.colorCode,
+          computedColor: c.computedColor,
+          value: c.area,
+        }))
       )
 
       sendResponse({ backgroundColors, textColors })
@@ -209,16 +231,21 @@ export default defineContentScript({
      * @param {Element[]} element - 対象のHTML要素
      * @returns {string} カラーコード
      */
-    const resolveEffectiveBackgroundColor = (element: Element): string => {
+    const resolveEffectiveBackgroundColor = (
+      element: Element
+    ): { color: string; computedColor: string } => {
       let current: Element | null = element
       while (current) {
         const bg = window.getComputedStyle(current).backgroundColor
         if (isOpaqueBackgroundColor(bg)) {
-          return bg
+          return {
+            color: getDeclaredColor(current, 'background-color', getAuthoredStyleRules()) ?? bg,
+            computedColor: bg,
+          }
         }
         current = current.parentElement
       }
-      return 'rgb(255, 255, 255)'
+      return { color: 'rgb(255, 255, 255)', computedColor: 'rgb(255, 255, 255)' }
     }
 
     /**
@@ -260,14 +287,18 @@ export default defineContentScript({
         return getColorElement(elements)
       }
 
-      return elements.map((element) => ({
-        element,
-        color: resolveEffectiveBackgroundColor(element),
-        area: element.clientWidth * element.clientHeight,
-        children: Array.from(element.children).filter(
-          (el) => !notApplicableTags.includes(el.tagName.toUpperCase()) && isVisibleElement(el)
-        ),
-      }))
+      return elements.map((element) => {
+        const backgroundColor = resolveEffectiveBackgroundColor(element)
+        return {
+          element,
+          color: backgroundColor.color,
+          computedColor: backgroundColor.computedColor,
+          area: element.clientWidth * element.clientHeight,
+          children: Array.from(element.children).filter(
+            (el) => !notApplicableTags.includes(el.tagName.toUpperCase()) && isVisibleElement(el)
+          ),
+        }
+      })
     }
 
     /**
@@ -279,6 +310,7 @@ export default defineContentScript({
       elements: {
         element: Element
         color: string
+        computedColor: string
         area: number
         children: Element[]
       }[]
@@ -290,7 +322,7 @@ export default defineContentScript({
         )
           return
 
-        const childElements = getDirectVisibleBackgroundChildren(el.element, el.color)
+        const childElements = getDirectVisibleBackgroundChildren(el.element, el.computedColor)
         const total = childElements.reduce((sum, c) => sum + c.area, 0)
         el.area = Math.max(el.area - total, 0)
       })
@@ -333,6 +365,7 @@ export default defineContentScript({
       elements: {
         element: Element
         color: string
+        computedColor: string
         area: number
         children: Element[]
       }[]
@@ -357,15 +390,161 @@ export default defineContentScript({
      * @returns {{ color: string, value: number }[]} 集計後の色データ
      */
     const countColors = (
-      data: { color: string; value: number }[]
-    ): { color: string; value: number }[] => {
-      const count: Record<string, number> = {}
+      data: { color: string; computedColor: string; value: number }[]
+    ): { color: string; computedColor: string; value: number }[] => {
+      const count = new Map<string, { color: string; computedColor: string; value: number }>()
 
-      data.forEach(({ color, value }) => {
-        if (color) count[color] = (count[color] || 0) + value
+      data.forEach(({ color, computedColor, value }) => {
+        if (!color) return
+
+        const key = `${color}\n${computedColor}`
+        const current = count.get(key)
+        if (current) {
+          current.value += value
+        } else {
+          count.set(key, { color, computedColor, value })
+        }
       })
 
-      return Object.entries(count).map(([color, value]) => ({ color, value }))
+      return Array.from(count.values())
+    }
+
+    type AuthoredStyleRule = {
+      selectorText: string
+      declarations: Map<string, string>
+    }
+
+    let cachedAuthoredStyleRules: AuthoredStyleRule[] | null = null
+
+    /** ページ内CSSから、可能な範囲でCSSに書かれたままのプロパティ値を集める */
+    const getAuthoredStyleRules = (): AuthoredStyleRule[] => {
+      if (cachedAuthoredStyleRules) return cachedAuthoredStyleRules
+
+      cachedAuthoredStyleRules = []
+
+      Array.from(document.styleSheets).forEach((styleSheet) => {
+        try {
+          cachedAuthoredStyleRules?.push(...parseCssRules(Array.from(styleSheet.cssRules)))
+        } catch {
+          // Cross-origin stylesheets may not expose cssRules.
+        }
+      })
+
+      document.querySelectorAll('style').forEach((styleElement) => {
+        cachedAuthoredStyleRules?.push(...parseCssText(styleElement.textContent ?? ''))
+      })
+
+      return cachedAuthoredStyleRules
+    }
+
+    /** CSSRuleListから色指定に関係するルールを集める */
+    const parseCssRules = (rules: CSSRule[]): AuthoredStyleRule[] => {
+      const authoredRules: AuthoredStyleRule[] = []
+
+      rules.forEach((rule) => {
+        if (rule instanceof CSSStyleRule) {
+          const declarations = new Map<string, string>()
+          ;['color', 'background-color'].forEach((property) => {
+            const value = rule.style.getPropertyValue(property).trim()
+            if (value) declarations.set(property, value)
+          })
+
+          const backgroundValue = rule.style.getPropertyValue('background').trim()
+          if (backgroundValue && !declarations.has('background-color')) {
+            declarations.set('background-color', backgroundValue)
+          }
+
+          if (declarations.size) {
+            authoredRules.push({ selectorText: rule.selectorText, declarations })
+          }
+        } else if ('cssRules' in rule) {
+          authoredRules.push(...parseCssRules(Array.from((rule as CSSGroupingRule).cssRules)))
+        }
+      })
+
+      return authoredRules
+    }
+
+    /** styleタグ内の生CSSから色指定を取り出す */
+    const parseCssText = (cssText: string): AuthoredStyleRule[] => {
+      const rules: AuthoredStyleRule[] = []
+      const withoutComments = cssText.replace(/\/\*[\s\S]*?\*\//g, '')
+      const rulePattern = /([^{}@][^{}]*)\{([^{}]*)\}/g
+      let match: RegExpExecArray | null
+
+      while ((match = rulePattern.exec(withoutComments))) {
+        const declarations = getColorDeclarations(match[2])
+        if (declarations.size) {
+          rules.push({ selectorText: match[1].trim(), declarations })
+        }
+      }
+
+      return rules
+    }
+
+    /** 宣言ブロックから色指定だけを取り出す */
+    const getColorDeclarations = (declarationText: string): Map<string, string> => {
+      const declarations = new Map<string, string>()
+
+      declarationText.split(';').forEach((declaration) => {
+        const separatorIndex = declaration.indexOf(':')
+        if (separatorIndex < 0) return
+
+        const property = declaration.slice(0, separatorIndex).trim().toLowerCase()
+        const value = declaration.slice(separatorIndex + 1).trim()
+        if (!value) return
+
+        if (property === 'color' || property === 'background-color') {
+          declarations.set(property, value)
+        } else if (property === 'background' && !declarations.has('background-color')) {
+          declarations.set('background-color', value)
+        }
+      })
+
+      return declarations
+    }
+
+    /** 要素に指定されたCSS値を、可能な限り変換前の文字列で取得する */
+    const getDeclaredColor = (
+      element: Element,
+      property: 'color' | 'background-color',
+      authoredStyleRules: AuthoredStyleRule[]
+    ): string | null => {
+      const inlineColor = getColorDeclarations(element.getAttribute('style') ?? '').get(property)
+      if (inlineColor) return inlineColor
+
+      let matchedColor: string | null = null
+
+      for (const rule of authoredStyleRules) {
+        if (performance.now() > authoredStyleLookupDeadline) return matchedColor
+
+        try {
+          if (element.matches(rule.selectorText)) {
+            matchedColor = rule.declarations.get(property) ?? matchedColor
+          }
+        } catch {
+          // Unsupported selectors should not prevent color extraction.
+        }
+      }
+
+      return matchedColor
+    }
+
+    /** 継承される文字色の指定値を祖先から辿って取得する */
+    const resolveInheritedDeclaredColor = (
+      element: Element,
+      authoredStyleRules: AuthoredStyleRule[]
+    ): string | null => {
+      let current: Element | null = element
+
+      while (current) {
+        const declaredColor = getDeclaredColor(current, 'color', authoredStyleRules)
+        if (declaredColor) return declaredColor
+
+        current = current.parentElement
+      }
+
+      return null
     }
   },
 })

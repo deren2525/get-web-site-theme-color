@@ -28,6 +28,9 @@
       <template v-if="activeTab === 0">
         <div class="chart-container">
           <Loading v-if="loading" />
+          <p v-if="loading && showSlowLoadingNotice" class="c-loading-notice">
+            {{ slowLoadingNoticeText }}
+          </p>
           <ColorChart
             v-else-if="!loading && convertedBackgroundColors.length"
             title="Background Colors"
@@ -41,6 +44,9 @@
       <template v-else-if="activeTab === 1">
         <div class="chart-container">
           <Loading v-if="loading" />
+          <p v-if="loading && showSlowLoadingNotice" class="c-loading-notice">
+            {{ slowLoadingNoticeText }}
+          </p>
           <ColorChart
             v-else-if="!loading && convertedTextColors.length"
             title="Text Colors"
@@ -57,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, type ComponentPublicInstance, type Ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted, type ComponentPublicInstance, type Ref } from 'vue'
 import ColorChart from '@/components/ColorChart.vue'
 import ColorList from '@/components/ColorList.vue'
 import Loading from '@/components/Loading.vue'
@@ -72,6 +78,16 @@ type ToastExpose = {
 
 type ChartColorData = {
   color: string
+  computedColor: string
+  value: number
+}
+
+type DisplayColorData = {
+  color: string
+  displayColor: string
+  previewColor: string
+  copyColor: string
+  originalColor?: string
   value: number
 }
 
@@ -85,23 +101,18 @@ type ParsedColor = {
 }
 
 const activeTab = ref<number>(0)
-const activeColorMode = ref<ColorMode>('original')
+const activeColorMode = ref<ColorMode>('hex')
 const loading = ref<boolean>(true)
+const showSlowLoadingNotice = ref<boolean>(false)
+const slowLoadingNoticeDelayMs = 2000
+let slowLoadingTimer: number | null = null
 
 const colorModes: { label: string; value: ColorMode }[] = [
-  { label: 'Original', value: 'original' },
-  { label: 'RGB/RGBA', value: 'rgb' },
   { label: 'HEX', value: 'hex' },
+  { label: 'RGB/RGBA', value: 'rgb' },
   { label: 'HSL/HSLA', value: 'hsl' },
+  { label: 'Original', value: 'original' },
 ]
-
-// Canvas要素
-const backgroundCanvas = ref<HTMLCanvasElement | null>(null)
-const textCanvas = ref<HTMLCanvasElement | null>(null)
-
-// Chart.js インスタンス
-const backgroundChart = ref<any>(null)
-const textChart = ref<any>(null)
 
 // データ（背景色・文字色）
 const backgroundColors: Ref<ChartColorData[]> = ref([])
@@ -130,30 +141,63 @@ const showColorConversionNotice = computed(
 /** 色域変換時の注意文言を現在の言語から取得する */
 const colorConversionNoticeText = computed(() => chrome.i18n.getMessage('Notice_color_conversion'))
 
-/** 色リスト全体を選択中の形式に変換し、同じ色になったものを再集計する */
-const convertColors = (colors: ChartColorData[], mode: ColorMode): ChartColorData[] => {
-  const grouped = new Map<string, number>()
+/** 読み込みが長い場合の案内文を現在の言語から取得する */
+const slowLoadingNoticeText = computed(() => chrome.i18n.getMessage('Notice_slow_loading'))
 
-  colors.forEach(({ color, value }) => {
-    const convertedColor = convertColor(color, mode)
-    grouped.set(convertedColor, (grouped.get(convertedColor) ?? 0) + value)
+/** 色リスト全体を選択中の形式に変換し、同じ色になったものを再集計する */
+const convertColors = (colors: ChartColorData[], mode: ColorMode): DisplayColorData[] => {
+  const grouped = new Map<string, DisplayColorData>()
+
+  colors.forEach(({ color, computedColor, value }) => {
+    const convertedColor = convertColor(color, computedColor, mode)
+    const previewColor = mode === 'original' ? computedColor : convertedColor
+    const showOriginalVariable = mode === 'original' && isCssVariableColor(color)
+    const displayColor = showOriginalVariable ? formatResolvedColor(computedColor) : convertedColor
+    const copyColor = mode === 'original' ? displayColor : convertedColor
+    const originalColor = showOriginalVariable ? color : undefined
+    const key = `${displayColor}\n${previewColor}\n${copyColor}\n${originalColor ?? ''}`
+    const current = grouped.get(key)
+
+    if (current) {
+      current.value += value
+    } else {
+      grouped.set(key, {
+        color: convertedColor,
+        displayColor,
+        previewColor,
+        copyColor,
+        originalColor,
+        value,
+      })
+    }
   })
 
-  return Array.from(grouped, ([color, value]) => ({ color, value })).sort(
-    (a, b) => b.value - a.value
-  )
+  return Array.from(grouped.values()).sort((a, b) => b.value - a.value)
 }
 
 /** 1つの色文字列を選択中の表示形式に変換する */
-const convertColor = (color: string, mode: ColorMode): string => {
+const convertColor = (color: string, computedColor: string, mode: ColorMode): string => {
   if (mode === 'original') return color
 
-  const parsedColor = parseColor(color)
-  if (!parsedColor) return color
+  const parsedColor = parseColor(computedColor) ?? parseColor(color)
+  if (!parsedColor) return computedColor || color
 
   if (mode === 'hex') return formatHexColor(parsedColor)
   if (mode === 'hsl') return formatHslColor(parsedColor)
   return formatRgbColor(parsedColor)
+}
+
+/** CSS変数参照の色指定かどうかを判定する */
+const isCssVariableColor = (color: string): boolean => {
+  return color.trim().toLowerCase().startsWith('var(')
+}
+
+/** Original表示時に併記・コピーする解決後カラーコードを作る */
+const formatResolvedColor = (color: string): string => {
+  const parsedColor = parseColor(color)
+  if (!parsedColor) return color
+
+  return formatHexColor(parsedColor)
 }
 
 /** HEX / RGB / RGBA / HSL / HSLA / LAB / LCH / OKLab / OKLCH / display-p3の色文字列を共通のRGBA値に変換する */
@@ -630,17 +674,35 @@ const copyText = (text: string): void => {
   }
 }
 
+/** ローディング状態を終了し、長時間読み込み案内を閉じる */
+const finishLoading = (): void => {
+  loading.value = false
+  showSlowLoadingNotice.value = false
+
+  if (slowLoadingTimer) {
+    window.clearTimeout(slowLoadingTimer)
+    slowLoadingTimer = null
+  }
+}
+
 // ページロード時に実行される初期化処理
 onMounted(() => {
+  slowLoadingTimer = window.setTimeout(() => {
+    if (loading.value) {
+      showSlowLoadingNotice.value = true
+    }
+  }, slowLoadingNoticeDelayMs)
+
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const currentTab = tabs[0]
     if (!currentTab?.id) {
       console.warn('No active tab found.')
+      finishLoading()
       return
     }
 
-    chrome.tabs.sendMessage(currentTab.id, {}, (val) => {
-      loading.value = false
+    chrome.tabs.sendMessage(currentTab.id, { type: 'GET_THEME_COLORS' }, (val) => {
+      finishLoading()
       // エラーハンドリング
       if (chrome.runtime.lastError) {
         // URLが取得できない場合 → アクセスできないので再読み込みを促す
@@ -695,35 +757,12 @@ onMounted(() => {
       val.textColors.sort((a: ChartColorData, b: ChartColorData) => b.value - a.value)
       backgroundColors.value = val.backgroundColors
       textColors.value = val.textColors
-
-      // グラフ描画
-      backgroundCanvas.value?.addEventListener('click', (e: MouseEvent) => {
-        const elements = backgroundChart.value?.getElementsAtEventForMode(
-          e,
-          'nearest',
-          { intersect: true },
-          false
-        )
-        if (elements?.length) {
-          const index = elements[0].index
-          copyText(backgroundColors.value[index].color)
-        }
-      })
-
-      textCanvas.value?.addEventListener('click', (e: MouseEvent) => {
-        const elements = textChart.value?.getElementsAtEventForMode(
-          e,
-          'nearest',
-          { intersect: true },
-          false
-        )
-        if (elements?.length) {
-          const index = elements[0].index
-          copyText(textColors.value[index].color)
-        }
-      })
     })
   })
+})
+
+onUnmounted(() => {
+  finishLoading()
 })
 </script>
 
@@ -760,5 +799,9 @@ onMounted(() => {
 
 .c-color-conversion-notice {
   @apply m-0 border-l-[3px] border-status-error bg-white px-[10px] py-[8px] text-[12px] font-bold leading-[1.5] text-status-error;
+}
+
+.c-loading-notice {
+  @apply mx-0 mb-[24px] mt-[-24px] text-center text-[12px] font-bold leading-[1.5] text-gray;
 }
 </style>

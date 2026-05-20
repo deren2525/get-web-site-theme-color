@@ -8,7 +8,14 @@ import Chart from 'chart.js/auto'
 
 interface Props {
   title: string
-  data: { color: string; value: number }[]
+  data: {
+    color: string
+    displayColor?: string
+    value: number
+    previewColor?: string
+    copyColor?: string
+    originalColor?: string
+  }[]
 }
 
 const props = defineProps<Props>()
@@ -32,11 +39,11 @@ const renderChart = async () => {
   chartInstance.value = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: props.data.map((d) => d.color),
+      labels: props.data.map((d) => d.displayColor ?? d.color),
       datasets: [
         {
           data: props.data.map((d) => d.value),
-          backgroundColor: props.data.map((d) => d.color),
+          backgroundColor: props.data.map((d) => d.previewColor ?? d.color),
         },
       ],
     },
@@ -46,7 +53,14 @@ const renderChart = async () => {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (tooltipItem) => props.data[tooltipItem.dataIndex].color,
+            label: (tooltipItem) => {
+              const color = props.data[tooltipItem.dataIndex]
+              if (color.originalColor) {
+                return `${color.displayColor ?? color.color} ${color.originalColor}`
+              }
+
+              return color.displayColor ?? color.color
+            },
           },
         },
         title: { display: true, text: props.title },
@@ -63,7 +77,7 @@ const renderChart = async () => {
     )
     if (elements?.length) {
       const index = elements[0].index
-      const clickedColor = props.data[index].color
+      const clickedColor = props.data[index].copyColor ?? props.data[index].color
       emit('color-clicked', clickedColor)
     }
   }
