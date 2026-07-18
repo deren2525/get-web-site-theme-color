@@ -1,3 +1,10 @@
+import {
+  countColors,
+  isOpaqueBackgroundColor,
+  isVisibleColor,
+  shouldTraverseBackgroundColor,
+} from '../utils/colors'
+
 export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
   main() {
@@ -141,66 +148,6 @@ export default defineContentScript({
       sendResponse({ backgroundColors, textColors })
       return true
     })
-
-    /**
-     * 透明扱いの色かどうかを判定する
-     * @param {string} color - CSSの色文字列
-     * @returns {boolean} 透明なら true
-     */
-    const isTransparentColor = (color: string): boolean => {
-      const normalizedColor = color.trim().toLowerCase()
-      if (!normalizedColor || normalizedColor === 'transparent') return true
-      if (normalizedColor === 'rgba(0, 0, 0, 0)') return true
-      if (/^rgba?\(.+[,/]\s*0(?:\.0+)?%?\s*\)$/.test(normalizedColor)) return true
-      if (/^#(?:[0-9a-f]{3})?0{1,2}$/i.test(normalizedColor)) return true
-      return false
-    }
-
-    /**
-     * 表示される色として扱えるかどうかを判定する
-     * @param {string} color - CSSの色文字列
-     * @returns {boolean} 表示色なら true
-     */
-    const isVisibleColor = (color: string): boolean => {
-      return Boolean(color) && !isTransparentColor(color)
-    }
-
-    /**
-     * 半透明を含まない背景色として扱えるかどうかを判定する
-     * @param {string} color - CSSの色文字列
-     * @returns {boolean} 不透明な背景色なら true
-     */
-    const isOpaqueBackgroundColor = (color: string): boolean => {
-      return isVisibleColor(color) && !hasAlphaChannel(color)
-    }
-
-    /**
-     * 背景色としては親または子へ辿る必要があるかどうかを判定する
-     * @param {string} color - CSSの色文字列
-     * @returns {boolean} 透明または半透明なら true
-     */
-    const shouldTraverseBackgroundColor = (color: string): boolean => {
-      return isTransparentColor(color) || hasAlphaChannel(color)
-    }
-
-    /**
-     * アルファチャンネルを持つ色かどうかを判定する
-     * @param {string} color - CSSの色文字列
-     * @returns {boolean} アルファチャンネルがあれば true
-     */
-    const hasAlphaChannel = (color: string): boolean => {
-      const normalizedColor = color.trim().toLowerCase()
-      if (normalizedColor.startsWith('rgba(')) return true
-      if (/^rgb\(.+\/\s*(?!1(?:\.0+)?\s*\)$|100%\s*\)$).+\)$/.test(normalizedColor)) {
-        return true
-      }
-
-      const hex = normalizedColor.match(/^#([0-9a-f]{4}|[0-9a-f]{8})$/i)?.[1]
-      if (!hex) return false
-
-      const alpha = hex.length === 4 ? hex[3] + hex[3] : hex.slice(6, 8)
-      return alpha.toLowerCase() !== 'ff'
-    }
 
     /**
      * 画面上で見える要素かどうかを祖先要素まで含めて判定する
@@ -382,31 +329,6 @@ export default defineContentScript({
 
       if (checked.length) checkedChildElementArea(checked)
       return allBackgroundColors
-    }
-
-    /**
-     * 色コードごとに値（面積や文字数）を集計して統合する
-     * @param {{ color: string, value: number }[]} data - 色と重みの配列
-     * @returns {{ color: string, value: number }[]} 集計後の色データ
-     */
-    const countColors = (
-      data: { color: string; computedColor: string; value: number }[]
-    ): { color: string; computedColor: string; value: number }[] => {
-      const count = new Map<string, { color: string; computedColor: string; value: number }>()
-
-      data.forEach(({ color, computedColor, value }) => {
-        if (!color) return
-
-        const key = `${color}\n${computedColor}`
-        const current = count.get(key)
-        if (current) {
-          current.value += value
-        } else {
-          count.set(key, { color, computedColor, value })
-        }
-      })
-
-      return Array.from(count.values())
     }
 
     type AuthoredStyleRule = {
