@@ -11,6 +11,12 @@
 
 バグの報告や改善案ご要望など[こちら](https://github.com/deren2525/get-web-site-theme-color/issues/new/choose)からお願いします。
 
+## Documentation
+
+- [プロダクト仕様](docs/product-specification.md)
+- [色抽出・変換仕様](docs/color-extraction-specification.md)
+- [指定色と計算済み色の保持方針](docs/decisions/001-authored-and-computed-colors.md)
+
 ## WXT + Vue 3
 
 This template should help get you started developing with Vue 3 in WXT.
