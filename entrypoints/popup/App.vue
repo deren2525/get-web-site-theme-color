@@ -286,7 +286,9 @@ const parseHexColor = (color: string): ParsedColor | null => {
 
   if (!values || values.length < 3) return null
 
-  const [r, g, b] = values.slice(0, 3).map((value) => parseInt(value, 16))
+  const r = parseInt(values[0]!, 16)
+  const g = parseInt(values[1]!, 16)
+  const b = parseInt(values[2]!, 16)
   const a = values[3] ? parseInt(values[3], 16) / 255 : 1
 
   return { r, g, b, a }
@@ -299,9 +301,9 @@ const parseHslColor = (color: string): ParsedColor | null => {
   )
   if (!match) return null
 
-  const hue = normalizeHue(parseFloat(match[1]))
-  const saturation = clamp(parseFloat(match[2]) / 100, 0, 1)
-  const lightness = clamp(parseFloat(match[3]) / 100, 0, 1)
+  const hue = normalizeHue(parseFloat(match[1]!))
+  const saturation = clamp(parseFloat(match[2]!) / 100, 0, 1)
+  const lightness = clamp(parseFloat(match[3]!) / 100, 0, 1)
   const a = match[4] ? parseAlphaChannel(match[4]) : 1
   const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation
   const huePrime = hue / 60
@@ -347,7 +349,9 @@ const parseRgbColor = (color: string): ParsedColor | null => {
   )
   if (!match) return null
 
-  const [r, g, b] = match.slice(1, 4).map(parseRgbChannel)
+  const r = parseRgbChannel(match[1]!)
+  const g = parseRgbChannel(match[2]!)
+  const b = parseRgbChannel(match[3]!)
   const a = match[4] ? parseAlphaChannel(match[4]) : 1
 
   return { r, g, b, a }
@@ -360,9 +364,9 @@ const parseLabColor = (color: string): ParsedColor | null => {
   )
   if (!match) return null
 
-  const lightness = parseLabLightness(match[1])
-  const a = parseLabAxis(match[2])
-  const b = parseLabAxis(match[3])
+  const lightness = parseLabLightness(match[1]!)
+  const a = parseLabAxis(match[2]!)
+  const b = parseLabAxis(match[3]!)
   const alpha = match[4] ? parseAlphaChannel(match[4]) : 1
 
   return labToRgb(lightness, a, b, alpha)
@@ -375,9 +379,9 @@ const parseLchColor = (color: string): ParsedColor | null => {
   )
   if (!match) return null
 
-  const lightness = parseLabLightness(match[1])
-  const chroma = parseLchChroma(match[2])
-  const hueRadians = (parseFloat(match[3]) * Math.PI) / 180
+  const lightness = parseLabLightness(match[1]!)
+  const chroma = parseLchChroma(match[2]!)
+  const hueRadians = (parseFloat(match[3]!) * Math.PI) / 180
   const alpha = match[4] ? parseAlphaChannel(match[4]) : 1
   const a = chroma * Math.cos(hueRadians)
   const b = chroma * Math.sin(hueRadians)
@@ -392,9 +396,9 @@ const parseOklabColor = (color: string): ParsedColor | null => {
   )
   if (!match) return null
 
-  const lightness = parseOklabLightness(match[1])
-  const a = parseOklabAxis(match[2])
-  const b = parseOklabAxis(match[3])
+  const lightness = parseOklabLightness(match[1]!)
+  const a = parseOklabAxis(match[2]!)
+  const b = parseOklabAxis(match[3]!)
   const alpha = match[4] ? parseAlphaChannel(match[4]) : 1
 
   return oklabToRgb(lightness, a, b, alpha)
@@ -407,9 +411,9 @@ const parseOklchColor = (color: string): ParsedColor | null => {
   )
   if (!match) return null
 
-  const lightness = parseOklchLightness(match[1])
-  const chroma = parseOklchChroma(match[2])
-  const hueRadians = (parseFloat(match[3]) * Math.PI) / 180
+  const lightness = parseOklchLightness(match[1]!)
+  const chroma = parseOklchChroma(match[2]!)
+  const hueRadians = (parseFloat(match[3]!) * Math.PI) / 180
   const a = match[4] ? parseAlphaChannel(match[4]) : 1
   const oklabA = chroma * Math.cos(hueRadians)
   const oklabB = chroma * Math.sin(hueRadians)
@@ -424,9 +428,9 @@ const parseDisplayP3Color = (color: string): ParsedColor | null => {
   )
   if (!match) return null
 
-  const r = parseColorFunctionChannel(match[1])
-  const g = parseColorFunctionChannel(match[2])
-  const b = parseColorFunctionChannel(match[3])
+  const r = parseColorFunctionChannel(match[1]!)
+  const g = parseColorFunctionChannel(match[2]!)
+  const b = parseColorFunctionChannel(match[3]!)
   const a = match[4] ? parseAlphaChannel(match[4]) : 1
 
   return displayP3ToRgb(r, g, b, a)

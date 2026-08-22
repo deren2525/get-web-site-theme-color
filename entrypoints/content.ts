@@ -395,9 +395,13 @@ export default defineContentScript({
       let match: RegExpExecArray | null
 
       while ((match = rulePattern.exec(withoutComments))) {
-        const declarations = getColorDeclarations(match[2])
+        const selectorText = match[1]
+        const declarationText = match[2]
+        if (selectorText === undefined || declarationText === undefined) continue
+
+        const declarations = getColorDeclarations(declarationText)
         if (declarations.size) {
-          rules.push({ selectorText: match[1].trim(), declarations })
+          rules.push({ selectorText: selectorText.trim(), declarations })
         }
       }
 
