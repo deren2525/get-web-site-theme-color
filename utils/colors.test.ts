@@ -7,7 +7,7 @@ import {
   shouldTraverseBackgroundColor,
 } from './colors'
 
-describe('color visibility helpers', () => {
+describe('EXTRACT-001 color visibility helpers', () => {
   it.each(['', 'transparent', 'rgba(0, 0, 0, 0)', 'rgb(1 2 3 / 0)', '#0000', '#11223300'])(
     'recognizes %s as transparent',
     (color) => expect(isTransparentColor(color)).toBe(true)
@@ -27,6 +27,17 @@ describe('color visibility helpers', () => {
     expect(hasAlphaChannel(color as string)).toBe(expected)
   })
 
+  it.each([
+    ['rgba(1, 2, 3, 0%)', true, true],
+    ['rgba(1, 2, 3, 25%)', false, true],
+    ['rgba(1, 2, 3, 100%)', false, false],
+    [' #11223300 ', true, true],
+    ['#112233ff', false, false],
+  ])('handles alpha boundary for %s', (color, transparent, hasAlpha) => {
+    expect(isTransparentColor(color)).toBe(transparent)
+    expect(hasAlphaChannel(color)).toBe(hasAlpha)
+  })
+
   it('only treats visible colors without transparency as opaque backgrounds', () => {
     expect(isOpaqueBackgroundColor('rgb(1, 2, 3)')).toBe(true)
     expect(isOpaqueBackgroundColor('transparent')).toBe(false)
@@ -35,7 +46,7 @@ describe('color visibility helpers', () => {
   })
 })
 
-describe('countColors', () => {
+describe('EXTRACT-003 countColors', () => {
   it('combines matching authored and computed colors while preserving order', () => {
     expect(
       countColors([
@@ -57,5 +68,18 @@ describe('countColors', () => {
         { color: '', computedColor: '', value: 100 },
       ])
     ).toHaveLength(2)
+  })
+
+  it('ignores empty authored colors without changing the remaining order', () => {
+    expect(
+      countColors([
+        { color: '', computedColor: 'rgb(0, 0, 0)', value: 100 },
+        { color: '#fff', computedColor: 'rgb(255, 255, 255)', value: 2 },
+        { color: '#000', computedColor: 'rgb(0, 0, 0)', value: 1 },
+      ])
+    ).toEqual([
+      { color: '#fff', computedColor: 'rgb(255, 255, 255)', value: 2 },
+      { color: '#000', computedColor: 'rgb(0, 0, 0)', value: 1 },
+    ])
   })
 })

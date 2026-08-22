@@ -8,7 +8,7 @@ const getAlpha = (color: string): number | null => {
   const normalizedColor = color.trim().toLowerCase()
   const hex = normalizedColor.match(/^#([0-9a-f]{4}|[0-9a-f]{8})$/i)?.[1]
   if (hex) {
-    const alpha = hex.length === 4 ? hex[3] + hex[3] : hex.slice(6, 8)
+    const alpha = hex.length === 4 ? hex[3]! + hex[3]! : hex.slice(6, 8)
     return Number.parseInt(alpha, 16) / 255
   }
 
@@ -17,7 +17,7 @@ const getAlpha = (color: string): number | null => {
 
   const slashAlpha = functionalColor.split('/')[1]?.trim()
   const commaParts = functionalColor.split(',')
-  const alpha = slashAlpha ?? (commaParts.length === 4 ? commaParts[3].trim() : null)
+  const alpha = slashAlpha ?? (commaParts.length === 4 ? commaParts[3]!.trim() : null)
   if (alpha === null) return null
 
   const numericAlpha = Number.parseFloat(alpha)

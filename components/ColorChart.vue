@@ -55,6 +55,8 @@ const renderChart = async () => {
           callbacks: {
             label: (tooltipItem) => {
               const color = props.data[tooltipItem.dataIndex]
+              if (!color) return ''
+
               if (color.originalColor) {
                 return `${color.displayColor ?? color.color} ${color.originalColor}`
               }
@@ -76,8 +78,13 @@ const renderChart = async () => {
       false
     )
     if (elements?.length) {
-      const index = elements[0].index
-      const clickedColor = props.data[index].copyColor ?? props.data[index].color
+      const selectedElement = elements[0]
+      if (!selectedElement) return
+
+      const color = props.data[selectedElement.index]
+      if (!color) return
+
+      const clickedColor = color.copyColor ?? color.color
       emit('color-clicked', clickedColor)
     }
   }
