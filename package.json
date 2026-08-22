@@ -30,7 +30,7 @@
     "@types/chrome": "0.1.42",
     "@vitejs/plugin-vue": "6.0.7",
     "@wxt-dev/module-vue": "1.0.3",
-    "postcss": "8.5.18",
+    "postcss": "8.5.23",
     "prettier": "3.8.3",
     "tailwindcss": "4.3.0",
     "typescript": "6.0.3",
