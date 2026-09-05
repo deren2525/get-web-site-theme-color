@@ -18,8 +18,8 @@
     "zip:firefox": "wxt zip -b firefox",
     "compile": "vue-tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "pnpm build && playwright test",
-    "test:e2e:real": "pnpm build && REAL_SITE_E2E=1 PW_HEADLESS=false playwright test e2e/real-site.spec.ts",
+    "test:e2e": "wxt build && playwright test",
+    "test:e2e:real": "wxt build && REAL_SITE_E2E=1 PW_HEADLESS=false playwright test e2e/real-site.spec.ts",
     "format": "prettier --write .",
     "postinstall": "wxt prepare"
   },

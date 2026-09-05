@@ -1,5 +1,12 @@
 <template>
-  <canvas ref="chartCanvasRef" width="260" height="260" class="mx-auto"></canvas>
+  <canvas
+    ref="chartCanvasRef"
+    width="260"
+    height="260"
+    class="mx-auto"
+    role="img"
+    :aria-label="title"
+  ></canvas>
 </template>
 
 <script setup lang="ts">
