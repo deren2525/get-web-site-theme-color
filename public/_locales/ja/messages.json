@@ -2,11 +2,20 @@
   "Name": {
     "message": "GET WEB SITE THEME COLOR"
   },
+  "Popup_title": {
+    "message": "サイト配色チェッカー"
+  },
   "Description": {
     "message": "現在表示中のウェブサイトからテーマカラーを抽出し、色の使用率やカラーコードを簡単に確認できます。"
   },
   "Success_copy_color": {
     "message": "カラーコードをコピーしました！"
+  },
+  "Error_copy_color": {
+    "message": "カラーコードをコピーできませんでした。"
+  },
+  "Error_no_active_tab": {
+    "message": "解析できるタブが見つかりませんでした。"
   },
   "Error_access_chrome_pages": {
     "message": "セキュリティ上の理由により、「chrome://」で始まるページではご利用いただけません。"
@@ -28,5 +37,50 @@
   },
   "Notice_slow_loading": {
     "message": "色の数が多いため、読み込みに時間がかかっています。"
+  },
+  "Welcome_title": {
+    "message": "ページの配色をワンクリックで確認"
+  },
+  "Welcome_description": {
+    "message": "色またはグラフをクリックすると、選択中の形式でカラーコードをコピーできます。"
+  },
+  "Reload_description": {
+    "message": "ページを再読み込みした後、もう一度拡張機能を開いてください。"
+  },
+  "Review_title": {
+    "message": "この拡張機能は役に立ちましたか？"
+  },
+  "Review_description": {
+    "message": "今後の改善の励みになります！"
+  },
+  "Action_got_it": {
+    "message": "閉じる"
+  },
+  "Action_reload": {
+    "message": "ページを再読み込み"
+  },
+  "Action_not_now": {
+    "message": "今後表示しない"
+  },
+  "Action_write_review": {
+    "message": "感想を書く"
+  },
+  "Action_support": {
+    "message": "問題を報告・改善を提案"
+  },
+  "Tab_background": {
+    "message": "背景色"
+  },
+  "Tab_text": {
+    "message": "文字色"
+  },
+  "Chart_background_colors": {
+    "message": "背景色の使用割合"
+  },
+  "Chart_text_colors": {
+    "message": "文字色の使用割合"
+  },
+  "Color_mode_label": {
+    "message": "カラーコードの表示形式"
   }
 }

@@ -1,15 +1,80 @@
 <template>
   <div>
-    <p class="text-center m-0 font-bold pt-[16px] text-[14px] text-text">WEB SITE THEME COLOR 🎨</p>
+    <p class="text-center m-0 font-bold pt-[16px] text-[14px] text-text">{{ extensionTitle }} 🎨</p>
 
-    <ul class="flex justify-center p-0 mt-0">
-      <li class="c-tab" :class="{ active: activeTab === 0 }" @click="activeTab = 0">Background</li>
-      <li class="c-tab" :class="{ active: activeTab === 1 }" @click="activeTab = 1">Text</li>
+    <section v-if="showReviewRequest && !pageError" class="c-review-card">
+      <div>
+        <p class="c-notice-title">{{ reviewTitle }}</p>
+        <p class="c-notice-body">{{ reviewDescription }}</p>
+      </div>
+      <div class="c-review-actions">
+        <button type="button" class="c-secondary-button" @click="dismissReviewRequest">
+          {{ notNowLabel }}
+        </button>
+        <button type="button" class="c-primary-button" @click="openReviewPage">
+          {{ writeReviewLabel }}
+        </button>
+      </div>
+    </section>
+
+    <section v-if="showWelcome && !pageError" class="c-notice-card" aria-labelledby="welcome-title">
+      <div>
+        <p id="welcome-title" class="c-notice-title">{{ welcomeTitle }}</p>
+        <p class="c-notice-body">{{ welcomeDescription }}</p>
+      </div>
+      <button
+        type="button"
+        class="c-secondary-button shrink-0 whitespace-nowrap"
+        @click="dismissWelcome"
+      >
+        {{ gotItLabel }}
+      </button>
+    </section>
+
+    <section v-if="pageError" class="c-error-panel" role="alert">
+      <p class="c-notice-title">{{ pageError.message }}</p>
+      <p v-if="pageError.canReload" class="c-notice-body">{{ reloadDescription }}</p>
+      <button
+        v-if="pageError.canReload"
+        type="button"
+        class="c-primary-button"
+        @click="reloadCurrentTab"
+      >
+        {{ reloadLabel }}
+      </button>
+    </section>
+
+    <ul v-if="!pageError" class="flex justify-center p-0 mt-0" role="tablist">
+      <li class="flex-1">
+        <button
+          class="c-tab"
+          :class="{ active: activeTab === 0 }"
+          role="tab"
+          :aria-selected="activeTab === 0"
+          @click="activeTab = 0"
+        >
+          {{ backgroundLabel }}
+        </button>
+      </li>
+      <li class="flex-1">
+        <button
+          class="c-tab"
+          :class="{ active: activeTab === 1 }"
+          role="tab"
+          :aria-selected="activeTab === 1"
+          @click="activeTab = 1"
+        >
+          {{ textLabel }}
+        </button>
+      </li>
     </ul>
 
     <!-- パネル -->
-    <div class="w-full h-full px-[16px] pt-[12px] pb-[16px] box-border flex flex-col gap-[16px]">
-      <div class="c-mode-control" aria-label="Color conversion mode">
+    <div
+      v-if="!pageError"
+      class="w-full h-full px-[16px] pt-[12px] pb-[16px] box-border flex flex-col gap-[16px]"
+    >
+      <div class="c-mode-control" :aria-label="colorModeLabel">
         <button
           v-for="mode in colorModes"
           :key="mode.value"
@@ -33,7 +98,7 @@
           </p>
           <ColorChart
             v-else-if="!loading && convertedBackgroundColors.length"
-            title="Background Colors"
+            :title="backgroundColorsLabel"
             :data="convertedBackgroundColors"
             @color-clicked="copyText"
           />
@@ -49,7 +114,7 @@
           </p>
           <ColorChart
             v-else-if="!loading && convertedTextColors.length"
-            title="Text Colors"
+            :title="textColorsLabel"
             :data="convertedTextColors"
             @color-clicked="copyText"
           />
@@ -57,6 +122,12 @@
         <ColorList :colors="convertedTextColors" @color-clicked="copyText" />
       </template>
     </div>
+
+    <footer class="c-footer">
+      <button type="button" class="c-link-button" @click="openSupportPage">
+        {{ supportLabel }}
+      </button>
+    </footer>
 
     <Toast ref="toastRef" />
   </div>
@@ -93,6 +164,11 @@ type DisplayColorData = {
 
 type ColorMode = 'original' | 'rgb' | 'hex' | 'hsl'
 
+type PageError = {
+  message: string
+  canReload: boolean
+}
+
 type ParsedColor = {
   r: number
   g: number
@@ -103,9 +179,38 @@ type ParsedColor = {
 const activeTab = ref<number>(0)
 const activeColorMode = ref<ColorMode>('hex')
 const loading = ref<boolean>(true)
+const currentTabId = ref<number | null>(null)
+const pageError = ref<PageError | null>(null)
+const showWelcome = ref<boolean>(false)
+const showReviewRequest = ref<boolean>(false)
 const showSlowLoadingNotice = ref<boolean>(false)
 const slowLoadingNoticeDelayMs = 2000
+const reviewUrl =
+  'https://chromewebstore.google.com/detail/get-web-site-theme-color/dbnbaoinihpfmkcmnlabklckngadaadm/reviews'
+const supportUrl = 'https://github.com/deren2525/get-web-site-theme-color/issues/new/choose'
+const successfulExtractionCountKey = 'successfulExtractionCount'
+const welcomeDismissedKey = 'welcomeDismissed'
+const reviewRequestHandledKey = 'reviewRequestHandled'
+const reviewMinimumSuccessfulExtractions = 5
 let slowLoadingTimer: number | null = null
+
+const message = (key: string): string => chrome.i18n.getMessage(key)
+const extensionTitle = computed(() => message('Popup_title'))
+const welcomeTitle = computed(() => message('Welcome_title'))
+const welcomeDescription = computed(() => message('Welcome_description'))
+const gotItLabel = computed(() => message('Action_got_it'))
+const reloadDescription = computed(() => message('Reload_description'))
+const reloadLabel = computed(() => message('Action_reload'))
+const reviewTitle = computed(() => message('Review_title'))
+const reviewDescription = computed(() => message('Review_description'))
+const notNowLabel = computed(() => message('Action_not_now'))
+const writeReviewLabel = computed(() => message('Action_write_review'))
+const supportLabel = computed(() => message('Action_support'))
+const backgroundLabel = computed(() => message('Tab_background'))
+const textLabel = computed(() => message('Tab_text'))
+const backgroundColorsLabel = computed(() => message('Chart_background_colors'))
+const textColorsLabel = computed(() => message('Chart_text_colors'))
+const colorModeLabel = computed(() => message('Color_mode_label'))
 
 const colorModes: { label: string; value: ColorMode }[] = [
   { label: 'HEX', value: 'hex' },
@@ -671,11 +776,60 @@ const formatHslColor = ({ r, g, b, a }: ParsedColor): string => {
  * カラーコードコピー＆トースト表示
  * @param text トーストメッセージ
  */
-const copyText = (text: string): void => {
+const copyText = async (text: string): Promise<void> => {
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(text)
-    toastRef.value?.showToast(chrome.i18n.getMessage('Success_copy_color'), 'success')
+    try {
+      await navigator.clipboard.writeText(text)
+      toastRef.value?.showToast(message('Success_copy_color'), 'success')
+    } catch {
+      toastRef.value?.showToast(message('Error_copy_color'), 'error')
+    }
   }
+}
+
+const updateReviewRequestVisibility = (successfulExtractionCount: number): void => {
+  if (localStorage.getItem(reviewRequestHandledKey)) return
+
+  showReviewRequest.value = successfulExtractionCount >= reviewMinimumSuccessfulExtractions
+}
+
+const recordSuccessfulExtraction = (): void => {
+  const successfulExtractionCount =
+    Number(localStorage.getItem(successfulExtractionCountKey) ?? '0') + 1
+  localStorage.setItem(successfulExtractionCountKey, String(successfulExtractionCount))
+  updateReviewRequestVisibility(successfulExtractionCount)
+}
+
+const dismissWelcome = (): void => {
+  localStorage.setItem(welcomeDismissedKey, 'true')
+  showWelcome.value = false
+}
+
+const dismissReviewRequest = (): void => {
+  localStorage.setItem(reviewRequestHandledKey, 'dismissed')
+  showReviewRequest.value = false
+}
+
+const openExternalPage = (url: string): void => {
+  chrome.tabs.create({ url })
+}
+
+const openReviewPage = (): void => {
+  localStorage.setItem(reviewRequestHandledKey, 'opened')
+  showReviewRequest.value = false
+  openExternalPage(reviewUrl)
+}
+
+const openSupportPage = (): void => openExternalPage(supportUrl)
+
+const reloadCurrentTab = (): void => {
+  if (currentTabId.value === null) return
+  chrome.tabs.reload(currentTabId.value)
+  window.close()
+}
+
+const setPageError = (messageKey: string, canReload = false): void => {
+  pageError.value = { message: message(messageKey), canReload }
 }
 
 /** ローディング状態を終了し、長時間読み込み案内を閉じる */
@@ -691,6 +845,8 @@ const finishLoading = (): void => {
 
 // ページロード時に実行される初期化処理
 onMounted(() => {
+  showWelcome.value = !localStorage.getItem(welcomeDismissedKey)
+
   slowLoadingTimer = window.setTimeout(() => {
     if (loading.value) {
       showSlowLoadingNotice.value = true
@@ -701,9 +857,11 @@ onMounted(() => {
     const currentTab = tabs[0]
     if (!currentTab?.id) {
       console.warn('No active tab found.')
+      setPageError('Error_no_active_tab')
       finishLoading()
       return
     }
+    currentTabId.value = currentTab.id
 
     chrome.tabs.sendMessage(currentTab.id, { type: 'GET_THEME_COLORS' }, (val) => {
       finishLoading()
@@ -711,7 +869,7 @@ onMounted(() => {
       if (chrome.runtime.lastError) {
         // URLが取得できない場合 → アクセスできないので再読み込みを促す
         if (!currentTab.url) {
-          toastRef.value?.showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
+          setPageError('Error_access_reload', true)
           return
         }
 
@@ -732,22 +890,18 @@ onMounted(() => {
             messageKey = 'Error_access_chrome_web_store'
           }
           // 対象ページでは使用できない旨を表示
-          toastRef.value?.showToast(chrome.i18n.getMessage(messageKey), 'error', 0)
+          setPageError(messageKey)
           return
         }
 
         // 値がない、または背景色・文字色がどちらも取得できなかった場合 → 再読み込み指示
         if (!val || (!val.backgroundColors?.length && !val.textColors?.length)) {
-          toastRef.value?.showToast(chrome.i18n.getMessage('Error_access_reload'), 'error', 0)
+          setPageError('Error_access_reload', true)
           return
         }
 
         // その他原因不明のエラー
-        toastRef.value?.showToast(
-          chrome.i18n.getMessage('Error_content_script_not_found'),
-          'error',
-          0
-        )
+        setPageError('Error_content_script_not_found', true)
         return
       } else {
         toastRef.value?.showToast(
@@ -761,6 +915,7 @@ onMounted(() => {
       val.textColors.sort((a: ChartColorData, b: ChartColorData) => b.value - a.value)
       backgroundColors.value = val.backgroundColors
       textColors.value = val.textColors
+      recordSuccessfulExtraction()
     })
   })
 })
@@ -774,7 +929,7 @@ onUnmounted(() => {
 @reference '../../assets/tailwind.css';
 
 .c-tab {
-  @apply text-tab-inactive cursor-pointer flex-1 font-bold order-[-1] px-[24px] py-[12px] relative text-center whitespace-nowrap list-none select-none transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)];
+  @apply w-full border-0 bg-transparent text-tab-inactive cursor-pointer font-bold px-[24px] py-[12px] relative text-center whitespace-nowrap select-none transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)];
 }
 .c-tab.active {
   @apply text-primary;
@@ -807,5 +962,63 @@ onUnmounted(() => {
 
 .c-loading-notice {
   @apply mx-0 mb-[24px] mt-[-24px] text-center text-[12px] font-bold leading-[1.5] text-gray;
+}
+
+.c-notice-card,
+.c-review-card,
+.c-error-panel {
+  @apply mx-[16px] mt-[12px] rounded-[8px] bg-white p-[12px] shadow-sm;
+}
+
+.c-notice-card,
+.c-review-card {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.c-notice-card {
+  @apply flex items-center gap-[12px] border-l-[3px] border-primary;
+}
+
+.c-error-panel {
+  @apply mb-[12px] border-l-[3px] border-status-error;
+}
+
+.c-review-card {
+  @apply border-l-[3px] border-primary;
+}
+
+.c-notice-title {
+  @apply m-0 text-[13px] font-bold leading-[1.5] text-gray;
+}
+
+.c-notice-body {
+  @apply mb-0 mt-[4px] text-[12px] leading-[1.5] text-gray;
+}
+
+.c-review-actions {
+  @apply mt-[10px] flex justify-end gap-[8px];
+}
+
+.c-primary-button,
+.c-secondary-button,
+.c-link-button {
+  @apply cursor-pointer rounded-[5px] border-0 px-[10px] py-[7px] text-[12px] font-bold;
+}
+
+.c-primary-button {
+  @apply bg-primary text-white;
+}
+
+.c-secondary-button {
+  @apply bg-background text-gray;
+}
+
+.c-footer {
+  @apply flex justify-center pb-[10px];
+}
+
+.c-link-button {
+  @apply bg-transparent text-gray underline;
 }
 </style>

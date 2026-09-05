@@ -2,11 +2,20 @@
   "Name": {
     "message": "GET WEB SITE THEME COLOR"
   },
+  "Popup_title": {
+    "message": "Site Palette"
+  },
   "Description": {
     "message": "Extract the theme colors from the current website and easily check their usage ratio and color codes."
   },
   "Success_copy_color": {
     "message": "Color code copied!"
+  },
+  "Error_copy_color": {
+    "message": "Couldn't copy the color code."
+  },
+  "Error_no_active_tab": {
+    "message": "No page is available to analyze."
   },
   "Error_access_chrome_pages": {
     "message": "For security reasons, this extension cannot be used on pages that start with \"chrome://\"."
@@ -28,5 +37,50 @@
   },
   "Notice_slow_loading": {
     "message": "This page has many colors, so loading is taking longer than usual."
+  },
+  "Welcome_title": {
+    "message": "See a page's palette in one click"
+  },
+  "Welcome_description": {
+    "message": "Click a color or chart segment to copy its code in the selected format."
+  },
+  "Reload_description": {
+    "message": "Reload the page, then open the extension again."
+  },
+  "Review_title": {
+    "message": "Has this extension been useful?"
+  },
+  "Review_description": {
+    "message": "Your feedback encourages us and helps make the extension better."
+  },
+  "Action_got_it": {
+    "message": "Close"
+  },
+  "Action_reload": {
+    "message": "Reload page"
+  },
+  "Action_not_now": {
+    "message": "Don't ask again"
+  },
+  "Action_write_review": {
+    "message": "Write a review"
+  },
+  "Action_support": {
+    "message": "Report a problem or suggest an improvement"
+  },
+  "Tab_background": {
+    "message": "Background"
+  },
+  "Tab_text": {
+    "message": "Text"
+  },
+  "Chart_background_colors": {
+    "message": "Background color usage"
+  },
+  "Chart_text_colors": {
+    "message": "Text color usage"
+  },
+  "Color_mode_label": {
+    "message": "Color code format"
   }
 }

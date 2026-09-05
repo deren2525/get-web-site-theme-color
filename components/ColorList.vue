@@ -1,10 +1,12 @@
 <template>
   <div class="flex flex-wrap items-start">
-    <div
+    <button
       v-for="color in colors"
       :key="`${color.color}-${color.previewColor ?? color.color}`"
       @click="$emit('color-clicked', color.copyColor ?? color.color)"
-      class="inline-flex items-start w-1/2 cursor-pointer"
+      type="button"
+      :aria-label="color.copyColor ?? color.color"
+      class="inline-flex items-start w-1/2 cursor-pointer border-0 bg-transparent p-0 text-left"
     >
       <div
         :style="{ background: color.previewColor ?? color.color }"
@@ -20,7 +22,7 @@
           {{ color.originalColor }}
         </span>
       </p>
-    </div>
+    </button>
   </div>
 </template>
 
