@@ -40,3 +40,7 @@ export const openPopupForTarget = async (
   await popup.goto(`chrome-extension://${await getExtensionId()}/popup.html`)
   return popup
 }
+
+export const getExtensionMessage = async (popup: Page, key: string): Promise<string> => {
+  return popup.evaluate((messageKey) => chrome.i18n.getMessage(messageKey), key)
+}
