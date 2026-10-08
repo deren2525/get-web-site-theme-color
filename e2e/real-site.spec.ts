@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { launchExtension, openPopupForTarget } from './extension'
+import { getExtensionMessage, launchExtension, openPopupForTarget } from './extension'
 
 test.skip(!process.env.REAL_SITE_E2E, '実サイト確認時だけ実行する')
 
@@ -14,11 +14,13 @@ test('実サイトからテーマカラーを取得し、実行時エラーを�
     })
 
     const popup = await openPopupForTarget(context, target, (message) => errors.push(message))
+    const popupTitle = await getExtensionMessage(popup, 'Popup_title')
+    const textTabLabel = await getExtensionMessage(popup, 'Tab_text')
 
-    await expect(popup.getByText('WEB SITE THEME COLOR')).toBeVisible()
+    await expect(popup.getByText(popupTitle)).toBeVisible()
     await expect(popup.locator('[data-color]')).not.toHaveCount(0)
 
-    await popup.getByText('Text', { exact: true }).click()
+    await popup.getByRole('tab', { name: textTabLabel, exact: true }).click()
     await expect(popup.locator('[data-color]')).not.toHaveCount(0)
     expect(errors).toEqual([])
   } finally {
