@@ -17,6 +17,17 @@
 - [色抽出・変換仕様](docs/color-extraction-specification.md)
 - [指定色と計算済み色の保持方針](docs/decisions/001-authored-and-computed-colors.md)
 
+## リリースノート
+
+`develop`から`main`へのPRをマージすると、GitHub Releaseとタグを自動作成します。
+バージョンはマージ時点の`wxt.config.ts`の`manifest.version`を使います。
+同じバージョンのReleaseが存在する場合は上書きしません。
+
+リリースPR本文の`## リリース内容`を変更内容へ、`## 対象PR`のPR一覧を関連PRへ挿入します。
+対象PRがない場合は関連PRの見出しも省略します。リリース内容が空の場合は作成を中止します。
+表示形式は[テンプレート](.github/release-notes-template.md)で変更できます。
+導入前にマージ済みのPRからは自動作成されません。
+
 ## WXT + Vue 3
 
 This template should help get you started developing with Vue 3 in WXT.
