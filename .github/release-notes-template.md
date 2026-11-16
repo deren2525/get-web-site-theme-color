@@ -1,4 +1,5 @@
-## 変更内容
+{{changelog}}
+
+## リリース内容
 
 {{changes}}
-{{pull_requests}}

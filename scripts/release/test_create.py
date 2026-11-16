@@ -54,15 +54,31 @@ class ReleaseTests(unittest.TestCase):
         publish("owner/repo", self.prepare())
         self.assertEqual(api.call_count, 1)
 
+    @patch("create.release_notes", return_value="complete notes")
     @patch("create.api")
-    def test_missing_release_is_created_but_auth_errors_fail(self, api):
+    def test_missing_release_is_created_but_auth_errors_fail(self, api, notes):
         payload = self.prepare()
         api.side_effect = [HTTPError("url", 404, "missing", {}, None), {"html_url": "new"}]
         publish("owner/repo", payload)
-        api.assert_called_with("/repos/owner/repo/releases", payload)
+        api.assert_called_with("/repos/owner/repo/releases", {**payload, "body": "complete notes"})
         api.side_effect = HTTPError("url", 403, "forbidden", {}, None)
         with self.assertRaises(HTTPError):
             publish("owner/repo", payload)
+
+    @patch("create.api")
+    def test_notes_include_all_release_prs_since_previous_tag(self, api):
+        from create import release_notes
+        api.side_effect = [
+            {"body": "## What's Changed\n* https://github.com/owner/repo/pull/35\n* https://github.com/owner/repo/pull/36\n\n**Full Changelog**: https://github.com/owner/repo/compare/v2.4.0...v2.5.0"},
+            {"merged_at": "date", "body": "## リリース内容\n- Node更新\n- 共通\n"},
+            {"merged_at": "date", "body": "## リリース内容\n- 自動化\n- 共通\n"},
+        ]
+        notes = release_notes("owner/repo", self.prepare())
+        self.assertIn("- Node更新", notes)
+        self.assertIn("- 自動化", notes)
+        self.assertEqual(notes.count("- 共通"), 1)
+        self.assertIn("## What's Changed", notes)
+        self.assertIn("**Full Changelog**:", notes)
 
 
 if __name__ == "__main__":

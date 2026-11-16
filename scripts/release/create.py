@@ -76,8 +76,38 @@ def publish(repository, payload):
     else:
         print(f"Release already exists; leaving unchanged: {existing['html_url']}")
         return
+    payload = {**payload, "body": release_notes(repository, payload)}
     release = api(releases, payload)
     print(f"Created release: {release['html_url']}")
+
+
+def release_notes(repository, payload):
+    generated = api(f"/repos/{repository}/releases/generate-notes", {
+        "tag_name": payload["tag_name"],
+        "target_commitish": payload["target_commitish"],
+    })["body"].replace("\r\n", "\n")
+    pr_numbers = dict.fromkeys(re.findall(
+        rf"https://github\.com/{re.escape(repository)}/pull/(\d+)\b", generated
+    ))
+    changes = []
+    for number in pr_numbers:
+        pr = api(f"/repos/{repository}/pulls/{number}")
+        if pr.get("merged_at"):
+            changes.extend(section(pr.get("body") or "", "リリース内容").splitlines())
+    if not any(line.strip() for line in changes):
+        changes = section(payload["body"], "リリース内容").splitlines()
+    # Keep the first occurrence when multiple release PRs repeat a change.
+    changes = list(dict.fromkeys(line for line in changes if line.strip()))
+    if not changes:
+        raise ValueError("No release content found for this release range")
+    changelog, separator, comparison = generated.partition("**Full Changelog**:")
+    template = Path(".github/release-notes-template.md").read_text()
+    notes = template.replace("{{changelog}}", changelog.strip()).replace(
+        "{{changes}}", "\n".join(changes)
+    ).strip()
+    if separator:
+        notes += f"\n\n{separator} {comparison.strip()}"
+    return notes + "\n"
 
 
 if __name__ == "__main__":
